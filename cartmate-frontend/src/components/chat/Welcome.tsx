@@ -41,7 +41,7 @@ const Welcome: React.FC<WelcomeProps> = ({
             value={input}
             onChange={onInputChange}
             onSubmit={onSubmit}
-            placeholder="How can I help you today?"
+            placeholder=""  // Empty placeholder to remove the hint
             disabled={isLoading}
             isLoading={isLoading}
           />
