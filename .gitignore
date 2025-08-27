@@ -12,6 +12,7 @@ lerna-debug.log*
 
 # Environment files
 .env*
+!**/ascendant-woods-*-*.json
 
 # IDE and editor files
 .vscode/
@@ -25,3 +26,6 @@ lerna-debug.log*
 
 # OS generated files
 Thumbs.db
+
+# Google Cloud Service Account Credentials
+*-*.json
