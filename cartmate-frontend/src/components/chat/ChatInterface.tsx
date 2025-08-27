@@ -1,4 +1,5 @@
 import React from 'react';
+import RoomScene from '../scene/RoomScene';
 import './ChatInterface.css';
 
 interface ChatInterfaceProps {
@@ -13,7 +14,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
 
   return (
     <div className="chat-interface">
-      {/* Empty middle section - all chat functionality moved to AgentGroupChat */}
+      {/* Room scene in the middle section */}
+      <RoomScene />
     </div>
   );
 };

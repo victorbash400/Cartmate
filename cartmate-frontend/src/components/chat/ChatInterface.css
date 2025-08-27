@@ -4,5 +4,8 @@
   height: 100%;
   width: 100%;
   position: relative;
-  /* Empty middle section - all chat functionality moved to AgentGroupChat */
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f8f9fa;
 }
