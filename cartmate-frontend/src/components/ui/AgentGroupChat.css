@@ -1,0 +1,69 @@
+.agent-group-chat {
+  width: 0;
+  height: 100vh;
+  background-color: #fff;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: width 0.3s ease, border 0.3s ease;
+  flex-shrink: 0;
+  margin-right: 20px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  height: calc(100vh - 40px);
+}
+
+.agent-group-chat.visible {
+  width: 350px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .agent-group-chat {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 50;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .agent-group-chat.visible {
+    transform: translateX(0);
+    width: 100vw;
+  }
+  
+  .agent-group-header {
+    border-radius: 0;
+  }
+}
+
+/* Overlay for mobile */
+.agent-group-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 40;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.agent-group-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (min-width: 769px) {
+  .agent-group-overlay {
+    display: none;
+  }
+}
