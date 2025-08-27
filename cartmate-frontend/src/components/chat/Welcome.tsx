@@ -35,7 +35,7 @@ const Welcome: React.FC<WelcomeProps> = ({
   return (
     <div className="welcome-container">
       <div className="welcome-content">
-        <h1 className="welcome-title">{greeting}! What's first on your list?</h1>
+        <h1 className="welcome-title">{greeting}!</h1>
         <div className="welcome-input-wrapper">
           <ChatInput
             value={input}

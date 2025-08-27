@@ -45,10 +45,10 @@ function App() {
         <button 
           className="agent-chat-toggle-new" 
           onClick={toggleAgentGroup}
-          title={isAgentGroupVisible ? 'Hide Agent Chat' : 'Show Agent Chat'}
+          title={isAgentGroupVisible ? 'Hide Chat' : 'Show Chat'}
         >
           <MessagesSquare size={24} color="#FF9E00" />
-          {!isAgentGroupVisible && <span style={{ marginLeft: '8px' }}>Agent Groupchat</span>}
+          {!isAgentGroupVisible && <span style={{ marginLeft: '8px' }}>Chat</span>}
         </button>
       </div>
     </div>
