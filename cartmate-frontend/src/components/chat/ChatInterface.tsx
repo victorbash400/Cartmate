@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatInput from './ChatInput';
 import Welcome from './Welcome';
-import './ChatInterface.css';
 
 interface Message {
   id: number;
@@ -61,7 +60,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
   };
 
   return (
-    <div className={`chat-interface ${hasStartedChat ? 'chat-started' : 'welcome-state'}`}>
+    <div className={`flex flex-col h-full w-full relative ${hasStartedChat ? 'chat-started' : 'welcome-state'}`}>
       {!hasStartedChat ? (
         // Welcome state - centered input
         <Welcome
@@ -74,23 +73,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
         // Normal chat state
         <>
           {/* Messages area */}
-          <div ref={chatContainerRef} className="chat-messages-container">
-            <div className="chat-messages-wrapper">
-              <div className="messages-list">
+          <div ref={chatContainerRef} className="h-full overflow-y-auto pb-32">
+            <div className="max-w-[600px] mx-auto p-8">
+              <div className="flex flex-col gap-8">
                 {messages.map((message) => (
                   <div key={message.id}>
                     {message.sender === 'user' && (
-                      <div className="user-message-container">
-                        <div className="user-message-bubble">
-                          <p className="message-text">{message.text}</p>
+                      <div className="flex justify-end mb-8">
+                        <div className="bg-gray-800 text-white rounded-3xl p-5 max-w-[448px] shadow-sm">
+                          <p className="text-sm leading-6">{message.text}</p>
                         </div>
                       </div>
                     )}
                     {message.sender === 'agent' && (
-                      <div className="agent-message-container">
-                        <div className="agent-message-content">
-                          <div className="agent-message-text">
-                            <p className="message-paragraph">{message.text}</p>
+                      <div className="mb-8">
+                        <div className="w-full text-gray-900">
+                          <div className="text-lg font-normal text-left leading-7 max-w-none">
+                            <p className="text-left mb-4">{message.text}</p>
                           </div>
                         </div>
                       </div>
@@ -98,22 +97,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
                   </div>
                 ))}
                 {isLoading && (
-                  <div className="loading-container">
-                    <div className="loading-dots">
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
+                  <div className="mb-8">
+                    <div className="flex items-center gap-1 mr-3">
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="loading-text">Thinking...</span>
+                    <span className="text-sm text-gray-500">Thinking...</span>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Floating bottom chat input */}
-          <div className="floating-input-container">
-            <div className="floating-input-wrapper">
+          {/* Floating bottom chat input with fade from bottom */}
+          <div className="absolute bottom-0 left-0 right-0 z-10">
+            {/* Fade overlay from bottom of page up to behind input */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white via-white/90 to-transparent pointer-events-none" />
+            
+            {/* Input area on top of fade */}
+            <div className="relative max-w-[600px] mx-auto p-6 pointer-events-auto">
               <ChatInput
                 value={input}
                 onChange={setInput}

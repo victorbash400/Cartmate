@@ -3,7 +3,6 @@ import { MessagesSquare } from 'lucide-react';
 import Sidebar from './components/ui/Sidebar'
 import ChatInterface from './components/chat/ChatInterface'
 import AgentGroupChat from './components/ui/AgentGroupChat'
-import './App.css'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -37,12 +36,12 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className="flex h-screen w-screen bg-gray-100 overflow-hidden">
       {!isWelcomeScreenActive && (
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       )}
       
-      <div className="main-content">
+      <div className="flex-grow flex relative h-full overflow-y-auto">
         <ChatInterface onChatStartedChange={handleChatStartedChange} />
         {!isWelcomeScreenActive && (
           <AgentGroupChat 
@@ -53,12 +52,12 @@ function App() {
         
         {!isWelcomeScreenActive && (
           <button 
-            className="agent-chat-toggle-new" 
+            className="absolute top-5 right-5 flex items-center py-2.5 px-4 bg-white border border-gray-300 rounded-full cursor-pointer shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 z-50"
             onClick={toggleAgentGroup}
             title={isAgentGroupVisible ? 'Hide Agent Chat' : 'Show Agent Chat'}
           >
             <MessagesSquare size={24} color="#FF9E00" />
-            {!isAgentGroupVisible && <span style={{ marginLeft: '8px' }}>Agent Groupchat</span>}
+            {!isAgentGroupVisible && <span className="ml-2">Agent Groupchat</span>}
           </button>
         )}
       </div>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CircleChevronLeft, CircleChevronRight, MessageCircle, User, LogOut, PersonStanding } from 'lucide-react';
-import './Sidebar.css';
+import { CircleChevronLeft, CircleChevronRight, MessageCircle, User, LogOut, PersonStanding, ShoppingBag } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -28,65 +27,131 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   };
 
   const handleNewSession = () => {
-    // Add new session logic here
     console.log('New session started');
   };
 
   const handleLogin = () => {
-    // Placeholder for login functionality
     setIsLoggedIn(true);
     console.log('User logged in');
   };
 
   const handleLogout = () => {
-    // Placeholder for logout functionality
     setIsLoggedIn(false);
     console.log('User logged out');
   };
+
+  const handleCartClick = () => {
+    console.log('Cart clicked');
+  };
+
+  // Improved button style with better spacing and hover effects
+  const sidebarButton = (children: React.ReactNode, onClick?: () => void, title?: string) => (
+    <button
+      className={`flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100
+      ${isOpen ? 'w-full justify-start' : 'w-10 h-10 mx-auto justify-center p-0'}`}
+      onClick={onClick}
+      title={title}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <>
       {/* Mobile overlay */}
       {isMobile && (
-        <div 
-          className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
+        <div
+          className={`fixed top-0 left-0 w-full h-full bg-black bg-opacity-20 z-40 transition-opacity duration-300 ${
+            isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+          }`}
           onClick={handleOverlayClick}
         />
       )}
-      
-      <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-        <h2>CartMate</h2>
-        
-        {/* Personalization Section */}
-        <div className="personalization-section">
-          <button className="personalization-button" title="Personalization">
-            <PersonStanding size={20} color="#FF9E00" />
-            {isOpen && <span className="button-text">Personalization</span>}
+
+      <div
+        className={`relative h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col flex-shrink-0
+        ${isOpen ? 'w-64' : 'w-16'}
+        ${isMobile ? 'fixed top-0 left-0 z-50 transform transition-transform duration-300 ' + (isOpen ? 'translate-x-0' : '-translate-x-full') : ''}`}
+      >
+        {/* Header section with brand and toggle */}
+        <div className="relative px-4 py-4 border-b border-gray-100">
+          <h2
+            className={`text-gray-800 text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${
+              isOpen ? 'opacity-100' : 'opacity-0 w-0'
+            }`}
+          >
+            CartMate
+          </h2>
+
+          {/* Toggle button */}
+          <button
+            className="absolute top-4 right-4 bg-transparent border-none cursor-pointer text-gray-600 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 w-8 h-8 flex items-center justify-center transition-colors duration-200"
+            onClick={toggleSidebar}
+          >
+            {isOpen ? (
+              <CircleChevronLeft size={18} color="#FF9E00" />
+            ) : (
+              <CircleChevronRight size={18} color="#FF9E00" />
+            )}
           </button>
         </div>
-        
-        <button className="toggle-button" onClick={toggleSidebar}>
-          {isOpen ? <CircleChevronLeft size={20} color="#FF9E00" /> : <CircleChevronRight size={20} color="#FF9E00" />}
-        </button>
-        <button className="new-chat-button" onClick={handleNewSession} title="New Chat">
-          <MessageCircle size={20} color="#FF9E00" />
-          {isOpen && <span className="button-text">New Chat</span>}
-        </button>
-        
-        {/* Login/Logout Button at the bottom */}
-        <div className="login-section">
-          {isLoggedIn ? (
-            <button className="auth-button" onClick={handleLogout} title="Sign Out">
-              <User size={20} color="#FF9E00" />
-              {isOpen && <span className="button-text">Profile</span>}
-              <LogOut size={16} color="#FF9E00" className="logout-icon" />
-            </button>
-          ) : (
-            <button className="auth-button" onClick={handleLogin} title="Sign In">
-              <User size={20} color="#FF9E00" />
-              {isOpen && <span className="button-text">Sign In</span>}
-            </button>
-          )}
+
+        {/* Menu Items with proper spacing */}
+        <div className="flex-1 px-3 py-4">
+          <div className="space-y-1">
+            {sidebarButton(
+              <>
+                <PersonStanding size={20} color="#FF9E00" className="shrink-0" />
+                {isOpen && <span className="font-medium whitespace-nowrap">Personalization</span>}
+              </>,
+              undefined,
+              'Personalization'
+            )}
+
+            {sidebarButton(
+              <>
+                <MessageCircle size={20} color="#FF9E00" className="shrink-0" />
+                {isOpen && <span className="font-medium whitespace-nowrap">New Chat</span>}
+              </>,
+              handleNewSession,
+              'New Chat'
+            )}
+
+            {sidebarButton(
+              <>
+                <ShoppingBag size={20} color="#FF9E00" className="shrink-0" />
+                {isOpen && <span className="font-medium whitespace-nowrap">Cart</span>}
+              </>,
+              handleCartClick,
+              'Cart'
+            )}
+          </div>
+        </div>
+
+        {/* Bottom section with proper spacing */}
+        <div className="border-t border-gray-100 px-3 py-4">
+          {isLoggedIn
+            ? sidebarButton(
+                <>
+                  <User size={20} color="#FF9E00" className="shrink-0" />
+                  {isOpen && (
+                    <>
+                      <span className="font-medium whitespace-nowrap">Profile</span>
+                      <LogOut size={16} color="#FF9E00" className="ml-auto shrink-0" />
+                    </>
+                  )}
+                </>,
+                handleLogout,
+                'Sign Out'
+              )
+            : sidebarButton(
+                <>
+                  <User size={20} color="#FF9E00" className="shrink-0" />
+                  {isOpen && <span className="font-medium whitespace-nowrap">Sign In</span>}
+                </>,
+                handleLogin,
+                'Sign In'
+              )}
         </div>
       </div>
     </>

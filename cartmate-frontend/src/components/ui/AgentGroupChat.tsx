@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import './AgentGroupChat.css';
 
 interface AgentGroupChatProps {
   isVisible: boolean;
@@ -28,14 +27,16 @@ const AgentGroupChat: React.FC<AgentGroupChatProps> = ({ isVisible, toggleVisibi
   return (
     <>
       {/* Mobile overlay */}
-      {isMobile && (
+      {isMobile && isVisible && (
         <div 
-          className={`agent-group-overlay ${isVisible ? 'active' : ''}`}
+          className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-20 z-40 transition-opacity duration-300 opacity-100 visible"
           onClick={handleOverlayClick}
         />
       )}
       
-      <div className={`agent-group-chat ${isVisible ? 'visible' : ''}`} />
+      <div className={`bg-white border-none rounded-xl overflow-hidden transition-all duration-300 flex-shrink-0 mr-5 mt-5 mb-5 h-[calc(100vh-40px)] ${
+        isVisible ? 'w-[350px] border border-gray-300' : 'w-0 border-0'
+      } ${isMobile ? 'fixed top-0 right-0 z-50 w-full h-full m-0 rounded-none transform transition-transform duration-300 ' + (isVisible ? 'translate-x-0' : 'translate-x-full') : ''}`} />
     </>
   );
 };
