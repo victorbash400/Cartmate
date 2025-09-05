@@ -12,7 +12,7 @@ lerna-debug.log*
 
 # Environment files
 .env*
-!**/ascendant-woods-*-*.json
+
 
 # IDE and editor files
 .vscode/
@@ -29,3 +29,12 @@ Thumbs.db
 
 # Google Cloud Service Account Credentials
 *-*.json
+
+# Python
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.coverage

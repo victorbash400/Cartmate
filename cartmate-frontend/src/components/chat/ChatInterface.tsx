@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import ChatInput from './ChatInput';
 import Welcome from './Welcome';
 
@@ -18,7 +19,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const ws = useRef<WebSocket | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Connect to WebSocket
+    ws.current = new WebSocket('ws://localhost:8000/ws/chat');
+
+    ws.current.onopen = () => console.log('WebSocket connected');
+    ws.current.onclose = () => console.log('WebSocket disconnected');
+
+    ws.current.onmessage = (event) => {
+      const agentResponse: Message = {
+        id: messages.length + 2, // This could be improved
+        text: event.data,
+        sender: 'agent',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, agentResponse]);
+      setIsLoading(false);
+    };
+
+    return () => {
+      ws.current?.close();
+    };
+  }, []); // Empty array means this runs once on mount
 
   // Notify parent when chat started state changes
   useEffect(() => {
@@ -26,13 +51,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
   }, [hasStartedChat, onChatStartedChange]);
 
   const handleSendMessage = () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !ws.current) return;
 
     const userMessage = input.trim();
     setInput('');
     setIsLoading(true);
     
-    // Mark that chat has started
     if (!hasStartedChat) {
       setHasStartedChat(true);
     }
@@ -46,23 +70,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
     
     setMessages(prev => [...prev, newMessage]);
     
-    // Simulate agent response after a short delay
-    setTimeout(() => {
-      const agentResponse: Message = {
-        id: messages.length + 2,
-        text: `Thanks for your message: "${userMessage}". This is a simulated response.`,
-        sender: 'agent',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, agentResponse]);
-      setIsLoading(false);
-    }, 1000);
+    // Send message to WebSocket
+    ws.current.send(userMessage);
   };
 
   return (
     <div className={`flex flex-col h-full w-full relative ${hasStartedChat ? 'chat-started' : 'welcome-state'}`}>
       {!hasStartedChat ? (
-        // Welcome state - centered input
         <Welcome
           input={input}
           onInputChange={setInput}
@@ -70,9 +84,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
           isLoading={isLoading}
         />
       ) : (
-        // Normal chat state
         <>
-          {/* Messages area */}
           <div ref={chatContainerRef} className="h-full overflow-y-auto pb-32">
             <div className="max-w-[600px] mx-auto p-8">
               <div className="flex flex-col gap-8">
@@ -88,8 +100,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
                     {message.sender === 'agent' && (
                       <div className="mb-8">
                         <div className="w-full text-gray-900">
-                          <div className="text-lg font-normal text-left leading-7 max-w-none">
-                            <p className="text-left mb-4">{message.text}</p>
+                          <div className="text-lg font-normal text-left leading-7 max-w-none prose prose-gray max-w-none">
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="text-left mb-4">{children}</p>,
+                                ul: ({ children }) => <ul className="list-disc pl-6 mb-4">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-6 mb-4">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                                code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+                                pre: ({ children }) => <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{children}</h3>,
+                                blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-4">{children}</blockquote>,
+                              }}
+                            >
+                              {message.text}
+                            </ReactMarkdown>
                           </div>
                         </div>
                       </div>
@@ -110,12 +139,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
             </div>
           </div>
 
-          {/* Floating bottom chat input with fade from bottom */}
           <div className="absolute bottom-0 left-0 right-0 z-10">
-            {/* Fade overlay from bottom of page up to behind input */}
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white via-white/90 to-transparent pointer-events-none" />
             
-            {/* Input area on top of fade */}
             <div className="relative max-w-[600px] mx-auto p-6 pointer-events-auto">
               <ChatInput
                 value={input}
