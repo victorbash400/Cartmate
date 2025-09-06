@@ -85,7 +85,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
         />
       ) : (
         <>
-          <div ref={chatContainerRef} className="h-full overflow-y-auto pb-32">
+          <div ref={chatContainerRef} className="h-full overflow-y-auto pb-32 hide-scrollbar">
             <div className="max-w-[600px] mx-auto p-8">
               <div className="flex flex-col gap-8">
                 {messages.map((message) => (
