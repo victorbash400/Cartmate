@@ -33,7 +33,7 @@ class OrchestratorAgent:
             self.chat_model = GenerativeModel("gemini-2.5-flash")
             self.chat_session = self.chat_model.start_chat()
             
-            logging.info("Vertex AI initialized successfully.")
+            logging.info("Vertex AI initialized successfully.") 
 
         except Exception as e:
             logging.error(f"Error initializing Vertex AI: {e}")

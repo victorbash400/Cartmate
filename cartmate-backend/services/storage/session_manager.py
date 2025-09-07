@@ -81,6 +81,30 @@ class SessionManager:
             logger.error(f"Error updating context for session {session_id}: {e}")
             return False
     
+    async def reset_session_context(self, session_id: str) -> bool:
+        """Reset the conversation context for a session while keeping the session active."""
+        try:
+            session = await self.get_session(session_id)
+            if not session:
+                return False
+                
+            # Reset context to empty state
+            session.context = {}
+            
+            # Store updated session
+            session_key = self._get_session_key(session_id)
+            await redis_client.set(
+                session_key, 
+                session.model_dump_json(), 
+                expire=self.session_ttl
+            )
+            
+            logger.info(f"Reset context for session {session_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error resetting context for session {session_id}: {e}")
+            return False
+    
     async def cleanup_expired_sessions(self) -> int:
         """Clean up expired sessions (handled automatically by storage)."""
         # This is handled by storage expiry, but we can add additional cleanup logic here if needed

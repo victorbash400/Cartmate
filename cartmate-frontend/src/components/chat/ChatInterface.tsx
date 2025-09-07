@@ -12,9 +12,10 @@ interface Message {
 
 interface ChatInterfaceProps {
   onChatStartedChange: (started: boolean) => void;
+  newChatTrigger?: number;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, newChatTrigger }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,14 +31,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
     ws.current.onclose = () => console.log('WebSocket disconnected');
 
     ws.current.onmessage = (event) => {
-      const agentResponse: Message = {
-        id: messages.length + 2, // This could be improved
-        text: event.data,
-        sender: 'agent',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, agentResponse]);
-      setIsLoading(false);
+      try {
+        const messageData = JSON.parse(event.data);
+        
+        // Handle chat reset message
+        if (messageData.type === 'chat_reset') {
+          resetChatForNewSession();
+          return;
+        }
+        
+        // Handle regular agent response
+        const agentResponse: Message = {
+          id: messages.length + 2, // This could be improved
+          text: messageData.content || event.data,
+          sender: 'agent',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, agentResponse]);
+        setIsLoading(false);
+      } catch (error) {
+        // Fallback to treating as plain text
+        const agentResponse: Message = {
+          id: messages.length + 2,
+          text: event.data,
+          sender: 'agent',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, agentResponse]);
+        setIsLoading(false);
+      }
     };
 
     return () => {
@@ -49,6 +71,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange }) =>
   useEffect(() => {
     onChatStartedChange(hasStartedChat);
   }, [hasStartedChat, onChatStartedChange]);
+
+  const resetChatForNewSession = () => {
+    setMessages([]);
+    setInput('');
+    setIsLoading(false);
+    // Keep chat interface active, don't go back to welcome screen
+  };
+
+  const resetChat = () => {
+    setMessages([]);
+    setInput('');
+    setIsLoading(false);
+    setHasStartedChat(false);
+  };
+
+  const handleNewChat = () => {
+    // Immediately reset the UI to provide instant feedback but keep chat interface
+    resetChatForNewSession();
+    
+    // Silently reset the backend session without expecting a response
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'new_chat_silent',
+        content: 'reset_session_context'
+      }));
+    }
+  };
+
+  // Listen for new chat trigger from parent
+  useEffect(() => {
+    if (newChatTrigger && newChatTrigger > 0) {
+      handleNewChat();
+    }
+  }, [newChatTrigger]);
 
   const handleSendMessage = () => {
     if (!input.trim() || isLoading || !ws.current) return;

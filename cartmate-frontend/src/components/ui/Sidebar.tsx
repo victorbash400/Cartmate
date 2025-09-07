@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CircleChevronLeft, CircleChevronRight, MessageCircle, User, LogOut, PersonStanding, ShoppingBag } from 'lucide-react';
+import { CircleChevronLeft, CircleChevronRight, User, LogOut, PersonStanding, ShoppingBag } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -26,9 +26,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     }
   };
 
-  const handleNewSession = () => {
-    console.log('New session started');
-  };
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -108,14 +105,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               'Personalization'
             )}
 
-            {sidebarButton(
-              <>
-                <MessageCircle size={20} color="#FF9E00" className="shrink-0" />
-                {isOpen && <span className="font-medium whitespace-nowrap">New Chat</span>}
-              </>,
-              handleNewSession,
-              'New Chat'
-            )}
 
             {sidebarButton(
               <>
