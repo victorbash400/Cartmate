@@ -32,7 +32,7 @@ const Welcome: React.FC<WelcomeProps> = ({
   const greeting = getGreeting();
   
   return (
-    <div className="h-screen flex items-center justify-center p-8 bg-cover bg-center bg-no-repeat relative overflow-hidden" style={{ backgroundImage: "url('/src/assets/background.png')" }}>
+    <div className="h-screen flex items-center justify-center p-8 bg-cover bg-center bg-no-repeat relative overflow-hidden" style={{ backgroundImage: "url('/src/assets/pre.jpg')" }}>
       <div className="text-center max-w-[600px] w-full z-10">
         <h1 className="text-3xl font-semibold text-gray-900 mb-8 leading-tight">{greeting}! What's first on your list?</h1>
         <div className="w-full">

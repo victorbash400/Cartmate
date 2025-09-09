@@ -84,6 +84,7 @@ class A2AAcknowledgment(A2AMessage):
     ack_for_message_id: str = Field(..., description="ID of the message being acknowledged")
     success: bool = Field(True, description="Whether the message was received successfully")
     error: Optional[str] = Field(None, description="Error message if acknowledgment failed")
+    content: Dict[str, Any] = Field(default_factory=lambda: {}, description="Acknowledgment content")
 
 
 class A2AFrontendNotification(A2AMessage):

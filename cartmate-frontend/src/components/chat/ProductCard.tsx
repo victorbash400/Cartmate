@@ -23,11 +23,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-md p-4 max-w-xs">
-      <img src={`/images/products/${product.picture}`} alt={product.name} className="w-full h-48 object-cover rounded-t-lg" />
-      <div className="pt-4">
-        <h3 className="text-lg font-semibold text-gray-800">{product.name}</h3>
-        <p className="text-gray-600 mt-1">{formatPrice(product.priceUsd)}</p>
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 max-w-xs transition-all duration-300 hover:shadow-lg hover:scale-105 hover:border-orange-300">
+      <img 
+        src={`/images/products/${product.picture}`} 
+        alt={product.name} 
+        className="w-full h-40 object-cover rounded-t-lg transition-transform duration-300 hover:scale-105" 
+      />
+      <div className="pt-3">
+        <h3 className="text-sm font-semibold text-gray-800 leading-tight">{product.name}</h3>
+        <p className="text-orange-600 font-bold mt-1 text-sm">{formatPrice(product.priceUsd)}</p>
       </div>
     </div>
   );

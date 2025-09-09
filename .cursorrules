@@ -1,0 +1,200 @@
+# CartMate AI Shopping Assistant - Cursor Context
+
+## Project Overview
+
+CartMate is an AI-powered conversational shopping assistant that uses Google's A2A (Agent-to-Agent) protocol for intelligent multi-agent communication. The system provides personalized shopping experiences through natural language conversations, style analysis, product discovery, price comparison, and cart management.
+
+### Architecture
+- **Frontend**: React + TypeScript + WebSocket for real-time chat
+- **Backend**: Python FastAPI + Redis + WebSocket + gRPC integrations
+- **AI Services**: Google Vertex AI (Gemini for conversation, Vision for style analysis)
+- **E-commerce**: Online Boutique microservices (gRPC)
+- **External APIs**: Perplexity API for price comparison
+
+## Core System Components
+
+### 1. Multi-Agent Architecture
+The system uses specialized agents coordinated through an orchestrator:
+
+- **Orchestrator Agent**: Primary conversational AI that engages users and coordinates other agents
+- **Style Profiler Agent**: Analyzes uploaded images to build user style preferences
+- **Product Discovery Agent**: Searches and filters products based on style context
+- **Price Comparison Agent**: Finds competitive pricing across external retailers
+- **Cart Management Agent**: Handles shopping cart operations with style coherence validation
+
+### 2. A2A (Agent-to-Agent) Protocol
+- **A2A Coordinator**: Central hub for agent registration and discovery
+- **Message Bus**: Redis-based pub/sub for inter-agent communication
+- **Standardized Messages**: Structured format with context and metadata
+- **Reliable Delivery**: Acknowledgments, retries, and error handling
+
+### 3. Real-time Communication
+- **WebSocket Gateway**: Bidirectional real-time communication
+- **Session Management**: Redis-backed persistence with unique session IDs
+- **Streaming Responses**: Progressive response delivery showing AI reasoning
+- **Connection Management**: Auto-reconnection and cleanup
+
+## Key Design Principles
+
+### Conversational-First Design
+The orchestrator is designed as a conversational AI shopping assistant first, not just a routing system. It:
+- Engages in natural shopping conversations using Vertex AI Gemini
+- Provides shopping advice and styling tips independently
+- Only delegates to specialized agents when their specific expertise is needed
+- Synthesizes agent responses into coherent conversational replies
+- Streams its thinking process and agent consultations transparently
+
+### Progressive Enhancement
+The system is built incrementally:
+1. Core orchestrator + WebSocket infrastructure
+2. Style profiler for image analysis
+3. Product discovery with style awareness
+4. Price comparison capabilities
+5. Advanced cart management features
+
+### Reliable Communication
+- Message acknowledgments and retries
+- Graceful degradation when services fail
+- Comprehensive error handling with fallback responses
+- Performance monitoring and health checks
+
+## Current Implementation Status
+
+### ✅ Completed Features
+- WebSocket gateway with connection management
+- Session management with Redis persistence
+- A2A protocol foundation with message bus
+- Base agent framework with common functionality
+- Orchestrator agent with Vertex AI integration
+- Product discovery agent with Online Boutique integration
+- Style profiler agent foundation
+- Frontend chat interface with real-time communication
+- Agent group chat visibility for A2A monitoring
+- New chat functionality for session reset
+
+### 🚧 In Progress
+- Comprehensive style analysis and learning
+- Advanced product filtering and ranking
+- Price comparison with external APIs
+- Cart management with style coherence
+- Performance optimization and monitoring
+
+### 📋 Planned Features
+- Advanced style recommendations
+- Outfit bundle optimization
+- Price alerts and monitoring
+- Comprehensive testing suite
+- Performance benchmarking
+
+## Development Guidelines
+
+### Code Organization
+```
+cartmate-backend/
+├── agents/          # Agent implementations
+├── a2a/            # A2A protocol and coordination
+├── api/            # WebSocket and HTTP endpoints
+├── models/         # Data models and validation
+├── services/       # External service integrations
+├── config/         # Configuration management
+└── tests/          # Test suites
+
+cartmate-frontend/
+├── src/components/  # React components
+├── src/services/   # API service clients
+└── src/utils/      # Utility functions
+```
+
+### Technology Stack
+- **Backend**: Python 3.11+, FastAPI, Redis, WebSockets, gRPC
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
+- **AI/ML**: Google Vertex AI (Gemini, Vision API)
+- **Database**: Redis for sessions, caching, and pub/sub
+- **External Services**: Online Boutique (gRPC), Perplexity API
+
+### Key Dependencies
+- **Backend**: `fastapi`, `redis`, `google-cloud-aiplatform`, `grpcio`, `pydantic`, `uvicorn`
+- **Frontend**: `react`, `typescript`, `tailwindcss`, `lucide-react`, `react-markdown`
+
+## Error Handling Strategy
+
+### Categories
+1. **User Input Errors**: Invalid requests, malformed data
+2. **External Service Errors**: API failures, timeouts, rate limits
+3. **Agent Communication Errors**: A2A protocol failures
+4. **Data Persistence Errors**: Redis failures, session corruption
+5. **AI Service Errors**: Vertex AI failures, analysis errors
+
+### Approach
+- Graceful degradation with reduced functionality
+- Exponential backoff for transient failures
+- Clear, actionable error messages for users
+- Comprehensive logging for debugging
+- Fallback responses when AI services fail
+
+## Testing Strategy
+
+### Unit Testing
+- Individual agent capabilities and logic
+- A2A protocol message routing and validation
+- External service integrations with mocks
+- Data model validation and serialization
+
+### Integration Testing
+- End-to-end A2A message flow between agents
+- WebSocket connection lifecycle and messaging
+- External service API integration
+- Session persistence across requests
+
+### Performance Testing
+- Concurrent WebSocket connections
+- Agent response times under load
+- Redis performance and cache hit rates
+- AI service rate limiting and quotas
+
+## Development Context
+
+### Current Focus Areas
+1. **Frontend Polish**: Improving UI/UX for chat interface
+2. **Agent Integration**: Connecting orchestrator with specialized agents
+3. **Style Analysis**: Enhancing image processing and preference learning
+4. **Product Discovery**: Improving search relevance and filtering
+5. **Error Handling**: Robust error recovery and user feedback
+
+### Known Issues
+- Session reset functionality recently implemented
+- Agent-to-agent communication monitoring in frontend
+- Style profiler needs Vertex AI Vision integration
+- Price comparison agent needs Perplexity API integration
+
+### Next Priorities
+1. Complete style profiler with image analysis
+2. Enhance product discovery with style context
+3. Implement price comparison with external APIs
+4. Add comprehensive cart management features
+5. Performance optimization and monitoring
+
+## Coding Standards
+
+### Python (Backend)
+- Use type hints and Pydantic models for validation
+- Async/await for all I/O operations
+- Comprehensive error handling with logging
+- Follow PEP 8 style guidelines
+- Use dependency injection for services
+
+### TypeScript/React (Frontend)
+- Functional components with hooks
+- TypeScript strict mode enabled
+- Tailwind CSS for styling
+- Component composition over inheritance
+- Real-time state management for chat
+
+### General Guidelines
+- Write comprehensive tests for new features
+- Document complex business logic
+- Use structured logging with correlation IDs
+- Implement graceful error handling
+- Optimize for performance and scalability
+
+This context provides the foundation for understanding CartMate's architecture, current state, and development direction. Use this information to make informed decisions about code changes, feature implementations, and system improvements.

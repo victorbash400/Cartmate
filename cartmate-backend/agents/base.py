@@ -3,7 +3,7 @@ import asyncio
 import uuid
 from typing import Optional, Dict, Any
 from abc import ABC, abstractmethod
-from models.a2a import A2AMessage, A2ARequest, A2AResponse, A2AMessageType, A2ARequestType, A2ARegistration, A2AAcknowledgment
+from models.a2a import A2AMessage, A2ARequest, A2AResponse, A2AMessageType, A2ARequestType, A2ARegistration, A2AAcknowledgment, A2AFrontendNotification
 from a2a.message_bus import a2a_message_bus
 from a2a.coordinator import a2a_coordinator
 
@@ -55,13 +55,46 @@ class BaseAgent(ABC):
         
         logger.info(f"Agent {self.agent_id} stopped")
     
+    def _deserialize_message(self, message_json: str) -> A2AMessage:
+        """
+        Deserialize a message JSON to the appropriate A2A message type.
+        
+        Args:
+            message_json: JSON string of the message
+            
+        Returns:
+            A2AMessage: Deserialized message of the correct type
+        """
+        import json
+        try:
+            # Parse JSON to get message type
+            message_dict = json.loads(message_json)
+            message_type = message_dict.get('type')
+            
+            # Deserialize to the appropriate type based on message type
+            if message_type == A2AMessageType.REQUEST:
+                return A2ARequest.model_validate(message_dict)
+            elif message_type == A2AMessageType.RESPONSE:
+                return A2AResponse.model_validate(message_dict)
+            elif message_type == A2AMessageType.ACK:
+                return A2AAcknowledgment.model_validate(message_dict)
+            elif message_type == A2AMessageType.FRONTEND_NOTIFICATION:
+                return A2AFrontendNotification.model_validate(message_dict)
+            else:
+                # Fallback to base message type
+                return A2AMessage.model_validate(message_dict)
+        except Exception as e:
+            logger.error(f"Error deserializing message: {e}")
+            # Fallback to base message type
+            return A2AMessage.model_validate_json(message_json)
+    
     async def _process_messages(self):
         """Process incoming messages"""
         while self.is_running:
             try:
                 if self.message_queue and not self.message_queue.empty():
                     message_json = await self.message_queue.get()
-                    message = A2AMessage.model_validate_json(message_json)
+                    message = self._deserialize_message(message_json)
                     
                     # Send acknowledgment if required
                     if message.requires_ack:

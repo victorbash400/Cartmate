@@ -20,6 +20,14 @@ from a2a.message_bus import a2a_message_bus
 logger = logging.getLogger(__name__)
 
 
+class AgentStep(BaseModel):
+    """Represents a step in agent communication for frontend visibility."""
+    id: str
+    type: str  # "calling", "processing", "success", "error"
+    agent_name: str
+    message: str
+
+
 class WebSocketMessage(BaseModel):
     """Standard WebSocket message format."""
     type: str
@@ -462,6 +470,69 @@ class WebSocketGateway:
             error_content["details"] = details
             
         return await self.send_message(session_id, "error", error_content)
+    
+    async def send_typing_indicator(self, session_id: str, is_typing: bool = True) -> bool:
+        """
+        Send typing indicator to session.
+        
+        Args:
+            session_id: Target session ID
+            is_typing: Whether typing is active
+            
+        Returns:
+            bool: True if indicator sent successfully
+        """
+        return await self.connection_manager.send_typing_indicator(session_id, is_typing)
+    
+    async def send_agent_communication(self, session_id: str, agent_steps: list) -> bool:
+        """
+        Send agent communication steps to session for frontend visibility.
+        
+        Args:
+            session_id: Target session ID
+            agent_steps: List of AgentStep objects
+            
+        Returns:
+            bool: True if sent successfully
+        """
+        try:
+            # Convert AgentStep objects to dictionaries
+            steps_data = [step.model_dump() if hasattr(step, 'model_dump') else step for step in agent_steps]
+            
+            message = WebSocketMessage(
+                type="agent_communication",
+                content={"steps": steps_data},
+                session_id=session_id
+            )
+            return await self.connection_manager.send_message(session_id, message)
+        except Exception as e:
+            logger.error(f"Error sending agent communication to session {session_id}: {e}")
+            return False
+    
+    async def update_agent_communication(self, session_id: str, agent_steps: list) -> bool:
+        """
+        Update agent communication steps for session.
+        
+        Args:
+            session_id: Target session ID
+            agent_steps: List of AgentStep objects
+            
+        Returns:
+            bool: True if updated successfully
+        """
+        try:
+            # Convert AgentStep objects to dictionaries
+            steps_data = [step.model_dump() if hasattr(step, 'model_dump') else step for step in agent_steps]
+            
+            message = WebSocketMessage(
+                type="agent_communication_update",
+                content={"steps": steps_data},
+                session_id=session_id
+            )
+            return await self.connection_manager.send_message(session_id, message)
+        except Exception as e:
+            logger.error(f"Error updating agent communication for session {session_id}: {e}")
+            return False
     
     async def handle_disconnect(self, session_id: str):
         """Handle WebSocket disconnection."""

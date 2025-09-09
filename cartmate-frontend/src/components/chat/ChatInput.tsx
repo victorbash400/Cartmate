@@ -1,14 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Plus } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react'
+import { ArrowRight, Plus } from 'lucide-react'
 
 interface ChatInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  onKeyDown?: (e: React.KeyboardEvent) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  isLoading?: boolean;
+  value: string
+  onChange: (value: string) => void
+  onSubmit: () => void
+  onKeyDown?: (e: React.KeyboardEvent) => void
+  placeholder?: string
+  disabled?: boolean
+  isLoading?: boolean
 }
 
 export default function ChatInput({
@@ -20,42 +20,41 @@ export default function ChatInput({
   disabled = false,
   isLoading = false
 }: ChatInputProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-  };
+    onChange(e.target.value)
+    
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px'
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSubmit();
+      e.preventDefault()
+      onSubmit()
     }
-    onKeyDown?.(e);
-  };
+    onKeyDown?.(e)
+  }
 
   useEffect(() => {
     if (!value && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = 'auto'
     }
-  }, [value]);
+  }, [value])
 
   return (
-    <div className="flex items-end gap-3 p-2.5 bg-white border-2 border-orange-400 rounded-2xl shadow-lg transition-all duration-300 hover:border-orange-400 hover:shadow-xl focus-within:border-orange-600 focus-within:shadow-2xl">
-      {/* Add Button */}
+    <div className="flex items-end space-x-1 px-3 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 hover:shadow-md focus-within:border-gray-900 focus-within:shadow-lg transition-all duration-300 ease-out">
       <button
         type="button"
-        className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-orange-400 cursor-pointer flex items-center justify-center transition-colors duration-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center"
         disabled={disabled}
       >
-        <Plus size={16} color="#FF9E00" />
+        <Plus className="w-4 h-4 text-gray-600" />
       </button>
-
-      {/* Input Area */}
+      
       <textarea
         ref={textareaRef}
         value={value}
@@ -64,21 +63,27 @@ export default function ChatInput({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="flex-1 bg-white text-gray-900 border-none outline-none text-base font-normal resize-none leading-6 p-1 min-h-6 max-h-[150px] placeholder-gray-500 focus:outline-none"
+        className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 focus:border-none text-sm font-normal resize-none leading-5 py-2"
+        style={{
+          outline: 'none',
+          boxShadow: 'none',
+          border: 'none',
+          minHeight: '32px',
+          maxHeight: '120px'
+        }}
       />
-
-      {/* Send Button */}
+      
       <button
         onClick={onSubmit}
         disabled={disabled || !value.trim()}
-        className="flex-shrink-0 w-9 h-9 rounded-full bg-white border border-orange-400 cursor-pointer flex items-center justify-center shadow-sm transition-all duration-200 mb-1 hover:bg-orange-50 hover:scale-110 active:scale-95 disabled:bg-gray-50 disabled:border-gray-200 disabled:cursor-not-allowed disabled:transform-none"
+        className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 mb-0.5"
       >
         {isLoading ? (
-          <div className="w-3 h-3 border-2 border-gray-400 border-opacity-30 border-t-2 border-t-gray-600 rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-gray-400/30 border-t-gray-600 rounded-full animate-spin" />
         ) : (
-          <ArrowRight size={16} color="#FF9E00" />
+          <ArrowRight className="w-4 h-4 text-black" />
         )}
       </button>
     </div>
-  );
+  )
 }

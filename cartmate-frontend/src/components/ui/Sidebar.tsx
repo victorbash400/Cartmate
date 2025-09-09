@@ -4,9 +4,10 @@ import { CircleChevronLeft, CircleChevronRight, User, LogOut, PersonStanding, Sh
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
+  connectionInfo?: { sessionId: string; userId: string } | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -116,6 +117,32 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             )}
           </div>
         </div>
+
+        {/* Connection info section */}
+        {connectionInfo && (
+          <div className="border-t border-gray-100 px-3 py-3">
+            <div className={`text-xs text-gray-500 ${isOpen ? 'block' : 'hidden'}`}>
+              <div className="mb-1">
+                <span className="font-medium">Session:</span>
+                <div className="font-mono text-xs break-all">
+                  {connectionInfo.sessionId.substring(0, 8)}...
+                </div>
+              </div>
+              <div>
+                <span className="font-medium">User:</span>
+                <div className="font-mono text-xs">
+                  {connectionInfo.userId.startsWith('anonymous_') 
+                    ? `Anonymous (${connectionInfo.userId.substring(9)})`
+                    : connectionInfo.userId
+                  }
+                </div>
+              </div>
+            </div>
+            {!isOpen && (
+              <div className="w-2 h-2 bg-green-500 rounded-full mx-auto" title="Connected"></div>
+            )}
+          </div>
+        )}
 
         {/* Bottom section with proper spacing */}
         <div className="border-t border-gray-100 px-3 py-4">
