@@ -8,6 +8,7 @@ from services.kubernetes.port_forwarder import port_forwarder
 from agents.agent_manager import agent_manager
 from api.websocket import websocket_gateway
 from api.message_router import route_message
+from api.personalization import router as personalization_router
 
 # Set up logging
 setup_logging()
@@ -26,6 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(personalization_router)
 
 @app.on_event("startup")
 async def startup_event():

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CircleChevronLeft, CircleChevronRight, User, LogOut, PersonStanding, ShoppingBag } from 'lucide-react';
+import PersonalizationModal from './PersonalizationModal';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPersonalizationModalOpen, setIsPersonalizationModalOpen] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -40,6 +42,50 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
 
   const handleCartClick = () => {
     console.log('Cart clicked');
+  };
+
+  const handlePersonalizationClick = () => {
+    setIsPersonalizationModalOpen(true);
+  };
+
+  const handlePersonalizationSave = async (data: any) => {
+    try {
+      if (!connectionInfo?.sessionId) {
+        throw new Error('No session ID available');
+      }
+
+      const formData = new FormData();
+      formData.append('session_id', connectionInfo.sessionId);
+      
+      if (data.stylePreferences) {
+        formData.append('style_preferences', data.stylePreferences);
+      }
+      
+      if (data.budgetRange) {
+        formData.append('budget_min', data.budgetRange.min.toString());
+        formData.append('budget_max', data.budgetRange.max.toString());
+      }
+      
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+
+      const response = await fetch('http://localhost:8000/api/personalization/save', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Personalization data saved successfully:', result);
+      
+    } catch (error) {
+      console.error('Error saving personalization data:', error);
+      throw error; // Re-throw to show error in modal
+    }
   };
 
   // Improved button style with better spacing and hover effects
@@ -102,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
                 <PersonStanding size={20} color="#FF9E00" className="shrink-0" />
                 {isOpen && <span className="font-medium whitespace-nowrap">Personalization</span>}
               </>,
-              undefined,
+              handlePersonalizationClick,
               'Personalization'
             )}
 
@@ -170,6 +216,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
               )}
         </div>
       </div>
+
+      {/* Personalization Modal */}
+      <PersonalizationModal
+        isOpen={isPersonalizationModalOpen}
+        onClose={() => setIsPersonalizationModalOpen(false)}
+        onSave={handlePersonalizationSave}
+      />
     </>
   );
 };

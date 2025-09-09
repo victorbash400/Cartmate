@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from services.boutique.product_catalog_client import product_catalog_client
 from agents.base import BaseAgent
 from models.a2a import A2AMessage, A2ARequest, A2AResponse, A2AMessageType, A2ARequestType, A2AFrontendNotification
@@ -100,7 +100,11 @@ class ProductDiscoveryAgent(BaseAgent):
         try:
             if request.request_type == A2ARequestType.SEARCH_PRODUCTS:
                 query = request.content.get("query", "")
+                personalization = request.content.get("personalization")
                 logger.info(f"Searching for products: {query}")
+                
+                if personalization:
+                    logger.info(f"Using personalization context: {personalization}")
                 
                 # Send notification that we're processing the request
                 notification = A2AFrontendNotification(
@@ -113,8 +117,8 @@ class ProductDiscoveryAgent(BaseAgent):
                 )
                 await self.send_message(request.sender, notification)
                 
-                # Perform intelligent product search
-                products = await self._intelligent_product_search(query)
+                # Perform intelligent product search with personalization context
+                products = await self._intelligent_product_search(query, personalization)
                 logger.info(f"Found {len(products)} products after intelligent filtering.")
                 
                 # Send notification about completion
@@ -218,9 +222,9 @@ class ProductDiscoveryAgent(BaseAgent):
             
             return False
     
-    async def _intelligent_product_search(self, query: str) -> List[Dict[str, Any]]:
+    async def _intelligent_product_search(self, query: str, personalization: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
-        Use AI to intelligently search and filter products based on user query.
+        Use AI to intelligently search and filter products based on user query and personalization context.
         """
         try:
             # Step 1: Get all products from the catalog
@@ -254,12 +258,12 @@ class ProductDiscoveryAgent(BaseAgent):
                                 product_dict['priceUsd'] = price_obj
                         product_dicts.append(product_dict)
             
-            # Step 2: Use AI to analyze query and filter products
+            # Step 2: Use AI to analyze query and filter products with personalization context
             if self.ai_model:
-                filtered_products = await self._ai_filter_products(query, product_dicts)
+                filtered_products = await self._ai_filter_products(query, product_dicts, personalization)
             else:
                 # Fallback to keyword-based filtering
-                filtered_products = self._keyword_filter_products(query, product_dicts)
+                filtered_products = self._keyword_filter_products(query, product_dicts, personalization)
             
             logger.info(f"AI filtering reduced {len(product_dicts)} products to {len(filtered_products)} relevant matches")
             return filtered_products
@@ -269,9 +273,9 @@ class ProductDiscoveryAgent(BaseAgent):
             # Fallback to basic search
             return product_catalog_client.search_products(query)
     
-    async def _ai_filter_products(self, query: str, products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _ai_filter_products(self, query: str, products: List[Dict[str, Any]], personalization: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
-        Use Vertex AI to intelligently filter products based on user query.
+        Use Vertex AI to intelligently filter products based on user query and personalization context.
         """
         try:
             # Create product summary for AI analysis
@@ -284,8 +288,20 @@ class ProductDiscoveryAgent(BaseAgent):
             
             products_text = '\n'.join(product_summaries)
             
+            # Build personalization context for AI
+            personalization_context = ""
+            if personalization:
+                personalization_context = f"""
+                
+                User Personalization Context:
+                - Style Preferences: {personalization.get('style_preferences', 'Not specified')}
+                - Budget Range: ${personalization.get('budget_range', {}).get('min', 'N/A')} - ${personalization.get('budget_range', {}).get('max', 'N/A')}
+                - Image Analysis: {personalization.get('image_analysis', {})}
+                """
+            
             analysis_prompt = f"""
             User Query: "{query}"
+            {personalization_context}
             
             Available Products:
             {products_text}
@@ -295,6 +311,9 @@ class ProductDiscoveryAgent(BaseAgent):
             - Category relevance
             - Description keywords
             - User intent (e.g., "shoes" should match footwear)
+            - Style preferences from personalization context
+            - Budget constraints from personalization context
+            - Image analysis results if available
             
             Return the indices of the most relevant products as a JSON array of numbers.
             If no products match well, return an empty array [].
@@ -304,6 +323,7 @@ class ProductDiscoveryAgent(BaseAgent):
             - "shoes" → products with footwear categories
             - "camera" → products with camera in name or description
             - "what products" → all products
+            - If user prefers "casual style" → prioritize casual items
             
             Response format: [0, 2, 5] (just the JSON array, nothing else)
             """
@@ -330,15 +350,15 @@ class ProductDiscoveryAgent(BaseAgent):
                 
             except (json.JSONDecodeError, IndexError) as e:
                 logger.warning(f"Error parsing AI response: {e}, falling back to keyword filtering")
-                return self._keyword_filter_products(query, products)
+                return self._keyword_filter_products(query, products, personalization)
                 
         except Exception as e:
             logger.error(f"Error in AI product filtering: {e}")
-            return self._keyword_filter_products(query, products)
+            return self._keyword_filter_products(query, products, personalization)
     
-    def _keyword_filter_products(self, query: str, products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _keyword_filter_products(self, query: str, products: List[Dict[str, Any]], personalization: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
-        Fallback keyword-based product filtering.
+        Fallback keyword-based product filtering with personalization context.
         """
         query_lower = query.lower()
         

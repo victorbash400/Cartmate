@@ -11,6 +11,7 @@ from agents.base import BaseAgent
 from models.a2a import A2AMessage, A2ARequest, A2AResponse, A2ARequestType, A2AMessageType, A2AFrontendNotification
 from a2a.coordinator import a2a_coordinator
 from api.websocket import websocket_gateway, AgentStep
+from services.storage.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class OrchestratorAgent(BaseAgent):
         self.chat_model = None
         self.chat_sessions = {}  # session_id -> ChatSession
         self.pending_requests = {}  # request_id -> request info
+        self.recent_products = {}  # session_id -> list of recent products shown
         
         # Initialize Vertex AI
         self._initialize_vertex_ai() 
@@ -111,8 +113,18 @@ class OrchestratorAgent(BaseAgent):
         """
         try:
             # Enhanced intent analysis prompt for Vertex AI
+            # Check if user is asking about recently shown products
+            recent_products_context = ""
+            if session_id in self.recent_products and self.recent_products[session_id]:
+                recent_products_list = [p.get('name', '').lower() for p in self.recent_products[session_id][-5:]]
+                recent_products_context = f"""
+                
+                Recently shown products: {', '.join(recent_products_list)}
+                """
+            
             analysis_prompt = f"""
             Analyze this user message for shopping intent: "{message}"
+            {recent_products_context}
             
             Respond with JSON format:
             {{
@@ -122,11 +134,17 @@ class OrchestratorAgent(BaseAgent):
                 "confidence": 0.0-1.0
             }}
             
-            Set needs_product_search to TRUE if the user is:
-            - Asking about products ("what products", "show me items", "what do you have")
-            - Looking for specific items ("find shoes", "search for dresses")
+            Set needs_product_search to TRUE ONLY if the user is:
+            - Asking to browse/see products ("what products", "show me items", "what do you have")
+            - Looking for NEW items ("find shoes", "search for dresses", "show me hairdryers")
             - Browsing inventory ("what's available", "what can I buy")
             - Requesting product recommendations ("suggest something", "what should I get")
+            
+            Set needs_product_search to FALSE if the user is:
+            - Asking questions about recently shown products ("how much is the hairdryer?", "tell me about that watch")
+            - Asking for details about specific items that were just displayed
+            - Making conversational comments about shown products
+            - Asking follow-up questions about products
             
             Examples that need product search:
             - "what products are available?"
@@ -134,6 +152,13 @@ class OrchestratorAgent(BaseAgent):
             - "find me a dress"
             - "what do you have in stock?"
             - "I'm looking for shoes"
+            - "show me hairdryers"
+            
+            Examples that DON'T need product search (conversational):
+            - "how much is the hairdryer?" (if hairdryer was recently shown)
+            - "tell me about that watch" (if watch was recently shown)
+            - "what's the price of the sunglasses?" (if sunglasses were recently shown)
+            - "I like that mug" (if mug was recently shown)
             """
             
             # Send notification to frontend about analysis
@@ -203,6 +228,9 @@ class OrchestratorAgent(BaseAgent):
             if not search_query or search_query.strip() == '':
                 search_query = message
             
+            # Get personalization data for this session
+            personalization_context = await self._get_personalization_context(session_id)
+            
             # Step 1: Acknowledge and show we're calling the product agent
             acknowledgment = f"I'll help you find products! Let me search our catalog for: '{search_query}'"
             await websocket_gateway.send_message(session_id, "text", acknowledgment)
@@ -248,16 +276,23 @@ class OrchestratorAgent(BaseAgent):
             }
             
             # Step 5: Send A2A request to product discovery agent with explicit request ID
+            request_content = {
+                "query": search_query,
+                "session_id": session_id
+            }
+            
+            # Add personalization context if available
+            if personalization_context:
+                request_content["personalization"] = personalization_context
+                logger.info(f"Added personalization context to product search request: {personalization_context}")
+            
             request = A2ARequest(
                 id=request_id,
                 sender=self.agent_id,
                 receiver=product_agent.agent_id,
                 request_type=A2ARequestType.SEARCH_PRODUCTS,
                 conversation_id=conversation_id,
-                content={
-                    "query": search_query,
-                    "session_id": session_id
-                },
+                content=request_content,
                 requires_ack=True
             )
             
@@ -279,15 +314,60 @@ class OrchestratorAgent(BaseAgent):
 
     async def _handle_conversational_request(self, message: str, session_id: str, chat_session: ChatSession) -> str:
         """
-        Handle requests conversationally using Vertex AI.
+        Handle requests conversationally using Vertex AI with personalization context.
         """
         try:
-            # Enhance the message with shopping context
+            # Get personalization data for this session
+            personalization_context = await self._get_personalization_context(session_id)
+            
+            # Build context-aware prompt
+            context_info = ""
+            if personalization_context:
+                style_prefs = personalization_context.get('style_preferences', '')
+                budget_range = personalization_context.get('budget_range', {})
+                image_analysis = personalization_context.get('image_analysis', {})
+                
+                context_info = f"""
+                
+                User's Personalization Context:
+                - Style Preferences: {style_prefs if style_prefs else 'Not specified'}
+                - Budget Range: ${budget_range.get('min', 'N/A')} - ${budget_range.get('max', 'N/A')}
+                - Image Analysis: {image_analysis}
+                """
+                logger.info(f"Using personalization context for conversational request: {personalization_context}")
+            
+            # Add recent products context
+            recent_products_info = ""
+            if session_id in self.recent_products and self.recent_products[session_id]:
+                products_list = []
+                for product in self.recent_products[session_id][-5:]:  # Last 5 products
+                    name = product.get('name', 'Unknown')
+                    price = product.get('priceUsd', {})
+                    if isinstance(price, dict):
+                        price_str = f"${price.get('units', 0)}.{str(price.get('nanos', 0))[:2]}"
+                    else:
+                        price_str = str(price)
+                    products_list.append(f"- {name}: {price_str}")
+                
+                recent_products_info = f"""
+                
+                Recently Shown Products (user may refer to these):
+                {chr(10).join(products_list)}
+                """
+                logger.info(f"Using recent products context for session {session_id}: {len(self.recent_products[session_id])} products")
+            
+            # Enhance the message with shopping context and personalization
             enhanced_prompt = f"""
             You are CartMate, a friendly AI shopping assistant. Respond naturally to this message: "{message}"
+            {context_info}
+            {recent_products_info}
             
             Guidelines:
             - Be helpful and conversational
+            - Use the user's personalization context when relevant (style preferences, budget, image analysis)
+            - If they ask about their style, reference their personalization data if available
+            - If they ask about specific products (like "the glass jar", "that watch", etc.), refer to the recently shown products list
+            - When referencing recently shown products, use their exact names and prices
             - Offer shopping advice when relevant
             - Ask clarifying questions to better understand needs
             - If they want to search for specific products, let them know you can help with that
@@ -338,6 +418,16 @@ class OrchestratorAgent(BaseAgent):
                     # Format product search results for user
                     products = response.content
                     formatted_response = await self._format_product_search_response(products, session_id)
+                    
+                    # Store recent products for conversational context
+                    if session_id not in self.recent_products:
+                        self.recent_products[session_id] = []
+                    self.recent_products[session_id].extend(products)
+                    # Keep only last 10 products to avoid memory bloat
+                    if len(self.recent_products[session_id]) > 10:
+                        self.recent_products[session_id] = self.recent_products[session_id][-10:]
+                    
+                    logger.info(f"Stored {len(products)} products in recent products for session {session_id}")
                     
                     # Send products as structured data for frontend rendering
                     message_content = {
@@ -392,6 +482,44 @@ class OrchestratorAgent(BaseAgent):
         response = f"I found {len(products)} products for you! Browse through them below and let me know if you'd like more details about any specific item, or if you'd like to search for something else."
         
         return response
+
+    async def _get_personalization_context(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get personalization data for a session from Redis.
+        """
+        try:
+            key = f"personalization:{session_id}"
+            data = await redis_client.get(key)
+            
+            if data:
+                import json
+                personalization_data = json.loads(data)
+                logger.info(f"Retrieved personalization data for session {session_id}")
+                return personalization_data
+            else:
+                logger.info(f"No personalization data found for session {session_id}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error retrieving personalization data for session {session_id}: {e}")
+            return None
+
+    async def clear_session_context(self, session_id: str):
+        """
+        Clear session-specific context (recent products, chat sessions).
+        """
+        try:
+            # Clear recent products
+            if session_id in self.recent_products:
+                del self.recent_products[session_id]
+            
+            # Clear chat session
+            if session_id in self.chat_sessions:
+                del self.chat_sessions[session_id]
+            
+            logger.info(f"Cleared session context for session {session_id}")
+        except Exception as e:
+            logger.error(f"Error clearing session context for session {session_id}: {e}")
 
 # Create a single instance of the agent
 orchestrator_agent = OrchestratorAgent()

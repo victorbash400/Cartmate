@@ -1,6 +1,7 @@
 import logging
 from api.websocket import WebSocketMessage, websocket_gateway
 from agents.agent_manager import agent_manager
+from agents.orchestrator import orchestrator_agent
 from services.storage.session_manager import session_manager
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,8 @@ async def route_message(session_id: str, message: WebSocketMessage):
 
     if message.type == "new_chat":
         success = await session_manager.reset_session_context(session_id)
+        # Also clear orchestrator context
+        await orchestrator_agent.clear_session_context(session_id)
         if success:
             # Let the client know the chat has been reset
             await websocket_gateway.send_message(session_id, "chat_reset", {"message": "New chat started."})
@@ -22,6 +25,8 @@ async def route_message(session_id: str, message: WebSocketMessage):
     elif message.type == "new_chat_silent":
         # Silently reset session context without sending any response
         success = await session_manager.reset_session_context(session_id)
+        # Also clear orchestrator context
+        await orchestrator_agent.clear_session_context(session_id)
         if success:
             logger.info(f"Session context silently reset for session {session_id}")
         else:
