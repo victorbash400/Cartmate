@@ -130,27 +130,42 @@ class ProductDiscoveryAgent(BaseAgent):
                 
                 # Convert protobuf objects to dictionaries (handle both real protobuf and mock data)
                 product_dicts = []
-                for p in products:
+                print(f"DEBUG: Processing {len(products)} products from boutique service")
+                
+                for i, p in enumerate(products):
+                    print(f"DEBUG: Product {i+1} type: {type(p)}")
+                    
                     if hasattr(p, 'DESCRIPTOR'):
                         # Real protobuf object
-                        product_dicts.append(MessageToDict(p))
+                        print(f"DEBUG: Product {i+1} is protobuf object")
+                        product_dict = MessageToDict(p)
+                        print(f"DEBUG: Product {i+1} converted to dict: {product_dict}")
+                        product_dicts.append(product_dict)
                     else:
                         # Mock data (already a dictionary) or simple object
                         if isinstance(p, dict):
+                            print(f"DEBUG: Product {i+1} is already a dict: {p}")
                             product_dicts.append(p)
                         else:
                             # Convert simple object to dict
+                            print(f"DEBUG: Product {i+1} is simple object, converting...")
                             product_dict = {}
                             for attr in ['id', 'name', 'description', 'picture', 'categories']:
                                 if hasattr(p, attr):
                                     product_dict[attr] = getattr(p, attr)
+                                    print(f"DEBUG: Product {i+1} {attr}: {getattr(p, attr)}")
                             if hasattr(p, 'price_usd'):
                                 price_obj = getattr(p, 'price_usd')
                                 if hasattr(price_obj, '__dict__'):
                                     product_dict['priceUsd'] = price_obj.__dict__
                                 else:
                                     product_dict['priceUsd'] = price_obj
+                                print(f"DEBUG: Product {i+1} price: {product_dict['priceUsd']}")
                             product_dicts.append(product_dict)
+                
+                print(f"DEBUG: Final product_dicts count: {len(product_dicts)}")
+                if product_dicts:
+                    print(f"DEBUG: First product dict: {product_dicts[0]}")
                 
                 # Send response back to requester
                 await self.send_response(

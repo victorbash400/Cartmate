@@ -5,7 +5,8 @@ import Welcome from './Welcome';
 import AgentIndicator from './AgentIndicator';
 import AgentStepSequence from './AgentStepSequence';
 import ConnectionStatus from './ConnectionStatus';
-
+import ProductGrid from './ProductGrid';
+import type { Product } from './types'; // Instead of from './ProductCard'
 interface Message {
   id: number;
   text: string;
@@ -13,6 +14,8 @@ interface Message {
   timestamp: Date;
   isAgentCommunication?: boolean;
   isConnectionStatus?: boolean;
+  isProductMessage?: boolean;
+  products?: Product[];
   agentSteps?: Array<{
     id: string;
     type: 'calling' | 'processing' | 'success' | 'error';
@@ -65,6 +68,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
       agentName: step.agent_name || step.agentName, // Handle both field names
       message: step.message
     }));
+  };
+
+  // Function to detect if message contains products
+  const detectProducts = (messageData: any): Product[] | null => {
+    // Check if the message contains product data
+    if (messageData.type === 'text' && messageData.content) {
+      // Check if content is an object with products array (new structure from backend)
+      if (typeof messageData.content === 'object' && messageData.content.products && Array.isArray(messageData.content.products)) {
+        return messageData.content.products as Product[];
+      }
+      // Check if content is directly an array of products (fallback)
+      if (typeof messageData.content === 'object' && Array.isArray(messageData.content)) {
+        // Check if it's an array of products
+        if (messageData.content.length > 0 && messageData.content[0].id && messageData.content[0].name) {
+          return messageData.content as Product[];
+        }
+      }
+    }
+    return null;
   };
 
   const connectWebSocket = () => {
@@ -211,12 +233,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           messageText = messageData.content || JSON.stringify(messageData);
         }
         
+        // Check if message contains products
+        const products = detectProducts(messageData);
+        
         // Create agent response with unique ID
         const agentResponse: Message = {
           id: Date.now() + Math.random(), // Ensure unique ID
           text: messageText,
           sender: 'agent',
-          timestamp: new Date()
+          timestamp: new Date(),
+          isProductMessage: products !== null,
+          products: products || undefined
         };
         setMessages(prev => [...prev, agentResponse]);
         setIsLoading(false);
@@ -376,6 +403,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                         {message.isAgentCommunication && message.agentSteps ? (
                           <div className="w-full">
                             <AgentStepSequence steps={message.agentSteps} />
+                          </div>
+                        ) : message.isProductMessage && message.products ? (
+                          <div className="w-full">
+                            {/* Only show text message if no products are present */}
+                            {(!message.products || message.products.length === 0) && (
+                              <div className="text-sm font-normal text-left leading-6 max-w-none prose prose-gray max-w-none mb-4">
+                                <ReactMarkdown
+                                  components={{
+                                    p: ({ children }) => <p className="text-left mb-2">{children}</p>,
+                                    ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                                    ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                                    li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                    em: ({ children }) => <em className="italic">{children}</em>,
+                                    code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                                    pre: ({ children }) => <pre className="bg-gray-100 p-3 rounded-lg overflow-x-auto mb-2 text-xs">{children}</pre>,
+                                    h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="text-base font-bold mb-1">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                                    blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-300 pl-3 italic mb-2">{children}</blockquote>,
+                                  }}
+                                >
+                                  {typeof message.text === 'string' ? message.text : JSON.stringify(message.text)}
+                                </ReactMarkdown>
+                              </div>
+                            )}
+                            {/* Show products if available */}
+                            {message.products && message.products.length > 0 && (
+                              <ProductGrid products={message.products} />
+                            )}
                           </div>
                         ) : (
                           <div className="w-full text-gray-900">

@@ -339,6 +339,13 @@ class OrchestratorAgent(BaseAgent):
                     products = response.content
                     formatted_response = await self._format_product_search_response(products, session_id)
                     
+                    # Send products as structured data for frontend rendering
+                    message_content = {
+                        "message": formatted_response,
+                        "products": products
+                    }
+                    await websocket_gateway.send_message(session_id, "text", message_content)
+                    
                     # Send final success step
                     final_agent_steps = [
                         AgentStep(
@@ -381,19 +388,8 @@ class OrchestratorAgent(BaseAgent):
         if not products:
             return "I couldn't find any products matching your search. Try different keywords or let me know what specific type of item you're looking for!"
         
-        response = f"I found {len(products)} products for you:\n\n"
-        
-        for i, product in enumerate(products[:5], 1):  # Limit to top 5 results
-            name = product.get('name', 'Unknown Product')
-            price = product.get('priceUsd', {})
-            price_str = f"${price.get('units', 0)}.{price.get('nanos', 0):02d}" if price else "Price not available"
-            
-            response += f"{i}. **{name}** - {price_str}\n"
-        
-        if len(products) > 5:
-            response += f"\n...and {len(products) - 5} more products available."
-        
-        response += "\n\nWould you like more details about any of these products, or shall I search for something else?"
+        # Since we're sending products as structured data, just provide a clean summary
+        response = f"I found {len(products)} products for you! Browse through them below and let me know if you'd like more details about any specific item, or if you'd like to search for something else."
         
         return response
 

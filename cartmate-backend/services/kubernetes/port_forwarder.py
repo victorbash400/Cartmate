@@ -21,10 +21,16 @@ class KubernetesPortForwarder:
                 "remote_port": 3550,
                 "required": True
             },
+            "frontend": {
+                "service": "frontend",
+                "local_port": 8080,
+                "remote_port": 80,
+                "required": True
+            },
             "cartservice": {
                 "service": "cartservice", 
                 "local_port": 50052,
-                "remote_port": 50052,
+                "remote_port": 7070,
                 "required": False
             },
             "paymentservice": {

@@ -4,6 +4,7 @@
 export { default as ChatInput } from './ChatInput';
 export { default as ChatInterface } from './ChatInterface';
 export { default as ProductCard } from './ProductCard';
+export { default as ProductGrid } from './ProductGrid';
 export { default as Welcome } from './Welcome';
 export { default as AgentIndicator } from './AgentIndicator';
 export { default as AgentStepSequence } from './AgentStepSequence';
