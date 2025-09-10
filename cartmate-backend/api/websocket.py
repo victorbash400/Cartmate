@@ -534,6 +534,36 @@ class WebSocketGateway:
             logger.error(f"Error updating agent communication for session {session_id}: {e}")
             return False
     
+    async def send_agent_communication_with_data(self, session_id: str, agent_steps: list, additional_data: dict = None) -> bool:
+        """
+        Send agent communication steps with additional data for session.
+        
+        Args:
+            session_id: Target session ID
+            agent_steps: List of AgentStep objects
+            additional_data: Additional data to include (e.g., price_comparison, products)
+            
+        Returns:
+            bool: True if sent successfully
+        """
+        try:
+            # Convert AgentStep objects to dictionaries
+            steps_data = [step.model_dump() if hasattr(step, 'model_dump') else step for step in agent_steps]
+            
+            content = {"steps": steps_data}
+            if additional_data:
+                content.update(additional_data)
+            
+            message = WebSocketMessage(
+                type="agent_communication_update",
+                content=content,
+                session_id=session_id
+            )
+            return await self.connection_manager.send_message(session_id, message)
+        except Exception as e:
+            logger.error(f"Error sending agent communication with data for session {session_id}: {e}")
+            return False
+    
     async def handle_disconnect(self, session_id: str):
         """Handle WebSocket disconnection."""
         await self.connection_manager.disconnect(session_id)

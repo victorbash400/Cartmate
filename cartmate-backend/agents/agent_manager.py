@@ -6,6 +6,7 @@ import asyncio
 from typing import List, Dict
 from agents.orchestrator import orchestrator_agent
 from agents.product_discovery import product_discovery_agent
+from agents.price_comparison import price_comparison_agent
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class AgentManager:
         self.agents = [
             orchestrator_agent,
             product_discovery_agent,
+            price_comparison_agent,
             # Add more agents here as they're implemented
         ]
         logger.info(f"Registered {len(self.agents)} agents for startup")

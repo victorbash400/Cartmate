@@ -6,6 +6,7 @@ import AgentIndicator from './AgentIndicator';
 import AgentStepSequence from './AgentStepSequence';
 import ConnectionStatus from './ConnectionStatus';
 import ProductGrid from './ProductGrid';
+import PriceComparison from './PriceComparison';
 import type { Product } from './types'; // Instead of from './ProductCard'
 interface Message {
   id: number;
@@ -15,7 +16,9 @@ interface Message {
   isAgentCommunication?: boolean;
   isConnectionStatus?: boolean;
   isProductMessage?: boolean;
+  isPriceComparisonMessage?: boolean;
   products?: Product[];
+  priceComparison?: any;
   agentSteps?: Array<{
     id: string;
     type: 'calling' | 'processing' | 'success' | 'error';
@@ -84,6 +87,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
         if (messageData.content.length > 0 && messageData.content[0].id && messageData.content[0].name) {
           return messageData.content as Product[];
         }
+      }
+    }
+    return null;
+  };
+
+  // Function to detect if message contains price comparison data
+  const detectPriceComparison = (messageData: any): any | null => {
+    // Check if the message contains price comparison data
+    if (messageData.type === 'text' && messageData.content) {
+      // Check if content is an object with price_comparison data
+      if (typeof messageData.content === 'object' && messageData.content.price_comparison) {
+        return messageData.content.price_comparison;
       }
     }
     return null;
@@ -196,6 +211,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           const stepsData = messageData.content?.steps || messageData.agent_steps;
           const agentSteps = parseAgentSteps(stepsData);
           if (agentSteps) {
+            // Check for additional data (price comparison, products, etc.)
+            const priceComparison = messageData.content?.price_comparison;
+            const products = messageData.content?.products;
+            const message = messageData.content?.message;
+            
             // Update the last agent communication message instead of adding a new one
             setMessages(prev => {
               const updatedMessages = [...prev];
@@ -205,7 +225,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                   updatedMessages[i] = {
                     ...updatedMessages[i],
                     agentSteps: agentSteps,
-                    text: messageData.content?.message || "" // Use message from content if available
+                    text: message || updatedMessages[i].text,
+                    isPriceComparisonMessage: priceComparison ? true : updatedMessages[i].isPriceComparisonMessage,
+                    isProductMessage: products ? true : updatedMessages[i].isProductMessage,
+                    priceComparison: priceComparison || updatedMessages[i].priceComparison,
+                    products: products || updatedMessages[i].products
                   };
                   break;
                 }
@@ -233,8 +257,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           messageText = messageData.content || JSON.stringify(messageData);
         }
         
-        // Check if message contains products
+        // Check if message contains products or price comparison data
         const products = detectProducts(messageData);
+        const priceComparison = detectPriceComparison(messageData);
+        
+        // Check if this is an agent communication update
+        const isAgentUpdate = messageData.type === 'agent_communication_update';
         
         // Create agent response with unique ID
         const agentResponse: Message = {
@@ -242,10 +270,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           text: messageText,
           sender: 'agent',
           timestamp: new Date(),
+          isAgentCommunication: isAgentUpdate,
           isProductMessage: products !== null,
-          products: products || undefined
+          isPriceComparisonMessage: priceComparison !== null,
+          products: products || undefined,
+          priceComparison: priceComparison || undefined
         };
-        setMessages(prev => [...prev, agentResponse]);
+        
+        if (isAgentUpdate) {
+          // For agent communication updates, try to update existing message
+          setMessages(prev => {
+            const updatedMessages = [...prev];
+            // Find the last agent communication message
+            for (let i = updatedMessages.length - 1; i >= 0; i--) {
+              if (updatedMessages[i].isAgentCommunication) {
+                updatedMessages[i] = {
+                  ...updatedMessages[i],
+                  ...agentResponse,
+                  // Keep existing agent steps if any
+                  agentSteps: agentResponse.agentSteps || updatedMessages[i].agentSteps
+                };
+                return updatedMessages;
+              }
+            }
+            // If no existing agent communication message found, add new one
+            return [...prev, agentResponse];
+          });
+        } else {
+          setMessages(prev => [...prev, agentResponse]);
+        }
         setIsLoading(false);
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -403,6 +456,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                         {message.isAgentCommunication && message.agentSteps ? (
                           <div className="w-full">
                             <AgentStepSequence steps={message.agentSteps} />
+                            {/* Also show price comparison if available */}
+                            {message.isPriceComparisonMessage && message.priceComparison && (
+                              <div className="mt-4">
+                                <PriceComparison priceComparison={message.priceComparison} />
+                              </div>
+                            )}
+                          </div>
+                        ) : message.isPriceComparisonMessage && message.priceComparison ? (
+                          <div className="w-full">
+                            {/* Show price comparison component */}
+                            <PriceComparison priceComparison={message.priceComparison} />
                           </div>
                         ) : message.isProductMessage && message.products ? (
                           <div className="w-full">

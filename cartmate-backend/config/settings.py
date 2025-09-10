@@ -27,9 +27,12 @@ class Settings(BaseSettings):
     
     # Perplexity API
     PERPLEXITY_API_KEY: Optional[str] = None
+    SONAR_API_KEY: Optional[str] = None
     
     class Config:
         case_sensitive = True
         env_file = ".env"
+        env_file_encoding = "utf-8"
 
+# Create settings instance
 settings = Settings()

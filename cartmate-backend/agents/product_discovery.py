@@ -328,8 +328,22 @@ class ProductDiscoveryAgent(BaseAgent):
             Response format: [0, 2, 5] (just the JSON array, nothing else)
             """
             
-            response = self.ai_model.generate_content(analysis_prompt)
-            response_text = response.text.strip()
+            # Add retry logic for Vertex AI
+            max_retries = 2
+            response = None
+            
+            for attempt in range(max_retries):
+                try:
+                    response = self.ai_model.generate_content(analysis_prompt)
+                    response_text = response.text.strip()
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    logger.warning(f"Vertex AI attempt {attempt + 1} failed in product filtering: {e}")
+                    if attempt == max_retries - 1:
+                        # Last attempt failed, will use fallback
+                        raise e
+                    # Wait before retry
+                    await asyncio.sleep(1)
             
             # Parse AI response
             import json
@@ -363,8 +377,18 @@ class ProductDiscoveryAgent(BaseAgent):
         query_lower = query.lower()
         
         # If query is very general, return all products
-        general_queries = ["what products", "show me", "available", "catalog", "items"]
+        general_queries = [
+            "what products", "show me", "available", "catalog", "items", 
+            "products", "what do you have", "what's available", "browse",
+            "everything", "all", "list", "see", "find", "search"
+        ]
         if any(gen_query in query_lower for gen_query in general_queries):
+            logger.info(f"General query detected: '{query}' - returning all {len(products)} products")
+            return products
+        
+        # If query is empty or very short, return all products
+        if len(query.strip()) <= 2:
+            logger.info(f"Very short query: '{query}' - returning all {len(products)} products")
             return products
         
         filtered_products = []
@@ -385,6 +409,12 @@ class ProductDiscoveryAgent(BaseAgent):
                     filtered_products.append(product)
                     break
         
+        # If no products found with keyword matching, return all products as fallback
+        if not filtered_products:
+            logger.info(f"No keyword matches found for '{query}' - returning all {len(products)} products as fallback")
+            return products
+        
+        logger.info(f"Keyword filtering found {len(filtered_products)} products for '{query}'")
         return filtered_products
     
     def _matches_category_keywords(self, term: str, product_categories: List[str]) -> bool:

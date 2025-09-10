@@ -58,6 +58,15 @@ class OrchestratorAgent(BaseAgent):
             # Load the generative model
             self.chat_model = GenerativeModel("gemini-2.5-flash")
             
+            # Test the connection with a simple request
+            try:
+                test_session = self.chat_model.start_chat()
+                test_response = test_session.send_message("Hello")
+                logger.info("Vertex AI connection test successful")
+            except Exception as test_error:
+                logger.warning(f"Vertex AI connection test failed: {test_error}")
+                # Don't raise here, just log the warning
+            
             logger.info("Vertex AI initialized successfully for OrchestratorAgent")
 
         except Exception as e:
@@ -93,6 +102,9 @@ class OrchestratorAgent(BaseAgent):
             if intent_analysis.get("needs_product_search", False):
                 # Delegate to product discovery agent
                 response = await self._handle_product_search_request(message, session_id, intent_analysis)
+            elif intent_analysis.get("needs_price_comparison", False):
+                # Delegate to price comparison agent
+                response = await self._handle_price_comparison_request(message, session_id, intent_analysis)
             else:
                 # Handle conversationally with Vertex AI
                 response = await self._handle_conversational_request(message, session_id, chat_session)
@@ -129,6 +141,7 @@ class OrchestratorAgent(BaseAgent):
             Respond with JSON format:
             {{
                 "needs_product_search": boolean,
+                "needs_price_comparison": boolean,
                 "search_query": "extracted product search terms if needed",
                 "intent_type": "conversation|product_search|style_analysis|cart_management|price_comparison",
                 "confidence": 0.0-1.0
@@ -137,6 +150,12 @@ class OrchestratorAgent(BaseAgent):
             CRITICAL: If the user mentions a product name that appears in the "Recently shown products" list above, 
             and they are asking a QUESTION about it (like "how much", "what's the price", "tell me about"), 
             then set needs_product_search to FALSE (conversational).
+            
+            Set needs_price_comparison to TRUE if the user is:
+            - Asking to compare prices ("is this a fair price?", "compare prices", "check if this is a good deal")
+            - Asking about price competitiveness ("how does this price compare?", "is this overpriced?")
+            - Requesting price analysis ("what's the market price?", "find similar products with prices")
+            - Asking about deals or discounts ("are there better deals?", "find cheaper alternatives")
             
             Set needs_product_search to TRUE ONLY if the user is:
             - Asking to browse/see products ("what products", "show me items", "what do you have")
@@ -159,6 +178,14 @@ class OrchestratorAgent(BaseAgent):
             - "I'm looking for shoes"
             - "show me hairdryers"
             
+            Examples that need price comparison:
+            - "is this a fair price?" (if referring to recently shown product)
+            - "compare prices for that watch" (if watch was recently shown)
+            - "check if this is a good deal"
+            - "how does this price compare to other retailers?"
+            - "find similar products with better prices"
+            - "is this overpriced?"
+            
             Examples that DON'T need product search (conversational):
             - "how much is the hairdryer?" (if hairdryer was recently shown)
             - "tell me about that watch" (if watch was recently shown)
@@ -179,9 +206,22 @@ class OrchestratorAgent(BaseAgent):
             )
             await websocket_gateway.send_a2a_message_to_backchannel(notification.model_dump())
             
-            # Use a simple chat session for analysis
-            temp_session = self.chat_model.start_chat()
-            response = temp_session.send_message(analysis_prompt)
+            # Use a simple chat session for analysis with retry logic
+            max_retries = 2
+            response = None
+            
+            for attempt in range(max_retries):
+                try:
+                    temp_session = self.chat_model.start_chat()
+                    response = temp_session.send_message(analysis_prompt)
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    logger.warning(f"Vertex AI attempt {attempt + 1} failed: {e}")
+                    if attempt == max_retries - 1:
+                        # Last attempt failed, will use fallback
+                        raise e
+                    # Wait before retry
+                    await asyncio.sleep(1)
             
             # Try to parse JSON response
             import json
@@ -223,14 +263,27 @@ class OrchestratorAgent(BaseAgent):
                             is_question_about_shown_products = True
                             break
                 
-                # Only trigger product search for explicit browsing requests
-                explicit_search_keywords = ["show me", "find me", "search for", "what products", "what do you have", "what's available"]
+                # Check for price comparison intent
+                price_comparison_keywords = ["compare price", "fair price", "good deal", "overpriced", "cheaper", "better price", "market price", "competitive price"]
+                needs_price_comparison = any(keyword in message_lower for keyword in price_comparison_keywords) and is_question_about_shown_products
+                
+                # Enhanced product search keywords - be more inclusive
+                explicit_search_keywords = [
+                    "show me", "find me", "search for", "what products", "what do you have", 
+                    "what's available", "products", "browse", "catalog", "items", "everything",
+                    "all", "list", "see", "find", "search", "available", "have"
+                ]
                 needs_search = any(keyword in message_lower for keyword in explicit_search_keywords) and not is_question_about_shown_products
+                
+                # If message is very short and contains "products", assume they want to see products
+                if len(message.strip()) <= 10 and "product" in message_lower and not is_question_about_shown_products:
+                    needs_search = True
                 
                 intent_data = {
                     "needs_product_search": needs_search,
+                    "needs_price_comparison": needs_price_comparison,
                     "search_query": message if needs_search else "",
-                    "intent_type": "product_search" if needs_search else "conversation",
+                    "intent_type": "price_comparison" if needs_price_comparison else ("product_search" if needs_search else "conversation"),
                     "confidence": 0.3  # Low confidence since AI parsing failed
                 }
                 logger.warning(f"Using fallback intent analysis: {intent_data}")
@@ -339,6 +392,102 @@ class OrchestratorAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error handling product search request: {e}")
             error_msg = "❌ I encountered an error while searching for products. Please try again."
+            await websocket_gateway.send_message(session_id, "text", error_msg)
+            return ""
+
+    async def _handle_price_comparison_request(self, message: str, session_id: str, intent_analysis: Dict[str, Any]) -> str:
+        """
+        Handle requests that need price comparison by delegating to price comparison agent.
+        """
+        try:
+            # Get the most recent product for price comparison
+            if session_id not in self.recent_products or not self.recent_products[session_id]:
+                error_msg = "I don't see any products to compare prices for. Please search for products first, then ask me to compare prices."
+                await websocket_gateway.send_message(session_id, "text", error_msg)
+                return ""
+            
+            # Find the specific product the user is asking about
+            target_product = self._find_product_in_message(message, session_id)
+            if not target_product:
+                # Fallback to most recent product
+                target_product = self.recent_products[session_id][-1]
+                logger.warning(f"Could not find specific product in message '{message}', using most recent product")
+            
+            product_name = target_product.get('name', 'Unknown Product')
+            
+            # Step 1: Acknowledge and show we're calling the price comparison agent
+            acknowledgment = f"I'll help you compare prices for '{product_name}'! Let me search for competitive pricing and similar products."
+            await websocket_gateway.send_message(session_id, "text", acknowledgment)
+            
+            # Step 2: Send notification that we're calling the price comparison agent
+            notification = A2AFrontendNotification(
+                sender=self.agent_id,
+                receiver="frontend",
+                notification_type="agent_delegation",
+                agent_name="Orchestrator",
+                agent_id=self.agent_id,
+                content=f"💰 Calling Price Comparison Agent for '{product_name}'"
+            )
+            await websocket_gateway.send_a2a_message_to_backchannel(notification.model_dump())
+            
+            # Step 3: Find price comparison agent
+            price_agent = a2a_coordinator.find_agent_by_type("price_comparison")
+            if not price_agent:
+                error_msg = "❌ Price comparison service is currently unavailable. Please try again later."
+                await websocket_gateway.send_message(session_id, "text", error_msg)
+                return ""
+            
+            # Step 4: Send initial agent communication with calling step
+            agent_steps = [
+                AgentStep(
+                    id="calling",
+                    type="calling",
+                    agent_name="Price Comparison Agent",
+                    message="Connecting..."
+                )
+            ]
+            await websocket_gateway.send_agent_communication(session_id, agent_steps)
+            
+            # Create request for price comparison agent
+            request_id = str(uuid.uuid4())
+            conversation_id = session_id
+            
+            # Store request info for when we get the response
+            self.pending_requests[request_id] = {
+                "session_id": session_id,
+                "original_message": message,
+                "request_type": "price_comparison"
+            }
+            
+            # Step 5: Send A2A request to price comparison agent
+            request_content = {
+                "product": target_product,
+                "session_id": session_id
+            }
+            
+            request = A2ARequest(
+                id=request_id,
+                sender=self.agent_id,
+                receiver=price_agent.agent_id,
+                request_type=A2ARequestType.COMPARE_PRICES,
+                conversation_id=conversation_id,
+                content=request_content,
+                requires_ack=True
+            )
+            
+            success = await self.send_message(price_agent.agent_id, request)
+            
+            if not success:
+                error_msg = "❌ Having trouble connecting to the price comparison service. Please try again."
+                await websocket_gateway.send_message(session_id, "text", error_msg)
+                return ""
+            
+            # Don't return anything here - the response will come via handle_response
+            return ""
+            
+        except Exception as e:
+            logger.error(f"Error handling price comparison request: {e}")
+            error_msg = "❌ I encountered an error while comparing prices. Please try again."
             await websocket_gateway.send_message(session_id, "text", error_msg)
             return ""
 
@@ -485,12 +634,87 @@ class OrchestratorAgent(BaseAgent):
                     
                     # Send final formatted response to user
                     await websocket_gateway.send_message(session_id, "text", formatted_response)
+                    
+                elif request_info["request_type"] == "price_comparison":
+                    # Send final completion step
+                    final_agent_steps = [
+                        AgentStep(
+                            id="calling",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="Connected"
+                        ),
+                        AgentStep(
+                            id="searching",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="Search completed"
+                        ),
+                        AgentStep(
+                            id="api_request",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="API request completed"
+                        ),
+                        AgentStep(
+                            id="parsing",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="Analysis completed"
+                        )
+                    ]
+                    await websocket_gateway.update_agent_communication(session_id, final_agent_steps)
+                    
+                    # Format price comparison results for user
+                    price_data = response.content
+                    formatted_response = await self._format_price_comparison_response(price_data, session_id)
+                    
+                    # Send final success step with price comparison data
+                    final_agent_steps = [
+                        AgentStep(
+                            id="calling",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="Connected"
+                        ),
+                        AgentStep(
+                            id="searching",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="Search completed"
+                        ),
+                        AgentStep(
+                            id="api_request",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="API request completed"
+                        ),
+                        AgentStep(
+                            id="parsing",
+                            type="success",
+                            agent_name="Price Comparison Agent",
+                            message="Analysis completed"
+                        )
+                    ]
+                    
+                    # Send agent communication update with price comparison data
+                    additional_data = {
+                        "message": formatted_response,
+                        "price_comparison": price_data
+                    }
+                    await websocket_gateway.send_agent_communication_with_data(session_id, final_agent_steps, additional_data)
+                    
+                    # Send final formatted response to user
+                    await websocket_gateway.send_message(session_id, "text", formatted_response)
                 else:
                     # Generic response handling
                     await websocket_gateway.send_message(session_id, "text", str(response.content))
             else:
                 # Handle error response
-                error_message = f"❌ Product Discovery Agent encountered an error: {response.error}. Please try again."
+                if request_info["request_type"] == "price_comparison":
+                    error_message = f"❌ Price Comparison Agent encountered an error: {response.error}. Please try again."
+                else:
+                    error_message = f"❌ Product Discovery Agent encountered an error: {response.error}. Please try again."
                 await websocket_gateway.send_message(session_id, "text", error_message)
             
             # Clean up pending request
@@ -512,6 +736,93 @@ class OrchestratorAgent(BaseAgent):
         response = f"I found {len(products)} products for you! Browse through them below and let me know if you'd like more details about any specific item, or if you'd like to search for something else."
         
         return response
+
+    async def _format_price_comparison_response(self, price_data: Dict[str, Any], session_id: str) -> str:
+        """
+        Format price comparison results into a conversational response.
+        """
+        try:
+            if price_data.get("error"):
+                return f"Sorry, I ran into an issue while checking prices: {price_data['error']}. Let me try again in a moment."
+            
+            original_product = price_data.get("original_product", {})
+            product_name = original_product.get("name", "Unknown Product")
+            current_price = price_data.get("current_price", "Unknown")
+            price_analysis = price_data.get("price_analysis", "")
+            similar_products = price_data.get("similar_products", [])
+            sources = price_data.get("sources", [])
+            
+            # Start with conversational tone
+            response = f"Here's what I found about the {product_name} at {current_price}:\n\n"
+            
+            # Include the price analysis (which is now conversational)
+            if price_analysis:
+                response += f"{price_analysis}\n\n"
+            
+            # Add similar products in a friendly way
+            if similar_products:
+                response += f"I found {len(similar_products)} similar options for you:\n"
+                for i, product in enumerate(similar_products[:3], 1):  # Show top 3
+                    name = product.get("name", "Similar product")
+                    price = product.get("price", "Unknown")
+                    retailer = product.get("retailer", "Various retailers")
+                    response += f"• {name} - {price} ({retailer})\n"
+                response += "\n"
+            
+            # Add sources info if available
+            if sources:
+                response += f"*Based on analysis of {len(sources)} market sources. Prices can vary by location and retailer.*"
+            else:
+                response += f"*This analysis is based on current market data. Prices may vary by retailer and location.*"
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error formatting price comparison response: {e}")
+            return "I found some price comparison data, but had trouble formatting it. The analysis is available in the detailed results below."
+
+    def _find_product_in_message(self, message: str, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find the specific product the user is asking about in their message.
+        """
+        try:
+            if session_id not in self.recent_products or not self.recent_products[session_id]:
+                return None
+            
+            message_lower = message.lower()
+            recent_products = self.recent_products[session_id]
+            
+            # Look for exact product name matches first
+            for product in recent_products:
+                product_name = product.get('name', '').lower()
+                if product_name in message_lower:
+                    logger.info(f"Found exact product match: '{product_name}' in message '{message}'")
+                    return product
+            
+            # Look for partial matches (e.g., "candle" matches "Candle Holder")
+            for product in recent_products:
+                product_name = product.get('name', '').lower()
+                # Split product name into words and check if any word is in the message
+                product_words = product_name.split()
+                for word in product_words:
+                    if len(word) > 3 and word in message_lower:  # Only match words longer than 3 chars
+                        logger.info(f"Found partial product match: '{word}' from '{product_name}' in message '{message}'")
+                        return product
+            
+            # Look for category matches (e.g., "mug" matches products with "mug" in categories)
+            for product in recent_products:
+                categories = product.get('categories', [])
+                for category in categories:
+                    if category.lower() in message_lower:
+                        logger.info(f"Found category match: '{category}' for product '{product.get('name')}' in message '{message}'")
+                        return product
+            
+            logger.info(f"No product match found in message '{message}'")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error finding product in message: {e}")
+            return None
 
     async def _get_personalization_context(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
