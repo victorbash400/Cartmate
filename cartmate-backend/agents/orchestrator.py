@@ -134,6 +134,10 @@ class OrchestratorAgent(BaseAgent):
                 "confidence": 0.0-1.0
             }}
             
+            CRITICAL: If the user mentions a product name that appears in the "Recently shown products" list above, 
+            and they are asking a QUESTION about it (like "how much", "what's the price", "tell me about"), 
+            then set needs_product_search to FALSE (conversational).
+            
             Set needs_product_search to TRUE ONLY if the user is:
             - Asking to browse/see products ("what products", "show me items", "what do you have")
             - Looking for NEW items ("find shoes", "search for dresses", "show me hairdryers")
@@ -145,6 +149,7 @@ class OrchestratorAgent(BaseAgent):
             - Asking for details about specific items that were just displayed
             - Making conversational comments about shown products
             - Asking follow-up questions about products
+            - ANY question about a product that was recently shown (price, details, etc.)
             
             Examples that need product search:
             - "what products are available?"
@@ -159,6 +164,8 @@ class OrchestratorAgent(BaseAgent):
             - "tell me about that watch" (if watch was recently shown)
             - "what's the price of the sunglasses?" (if sunglasses were recently shown)
             - "I like that mug" (if mug was recently shown)
+            - "how much is the tank top?" (if tank top was recently shown)
+            - "what's the price of the bamboo glass jar?" (if bamboo glass jar was recently shown)
             """
             
             # Send notification to frontend about analysis
@@ -180,6 +187,8 @@ class OrchestratorAgent(BaseAgent):
             import json
             try:
                 response_text = response.text.strip()
+                logger.info(f"AI intent analysis raw response: {response_text}")
+                
                 # Extract JSON if it's wrapped in markdown code blocks
                 if "```json" in response_text:
                     start = response_text.find("```json") + 7
@@ -190,20 +199,41 @@ class OrchestratorAgent(BaseAgent):
                     end = response_text.find("```", start)
                     response_text = response_text[start:end].strip()
                 
+                # Try to find JSON object in the response
+                if "{" in response_text and "}" in response_text:
+                    start = response_text.find("{")
+                    end = response_text.rfind("}") + 1
+                    response_text = response_text[start:end]
+                
                 intent_data = json.loads(response_text)
+                logger.info(f"Successfully parsed AI intent analysis: {intent_data}")
             except Exception as e:
-                logger.warning(f"Failed to parse AI intent analysis: {e}")
-                # Enhanced fallback logic
+                logger.error(f"Failed to parse AI intent analysis: {e}")
+                logger.error(f"Raw response was: {response.text}")
+                
+                # Smart fallback - default to conversational for questions about shown products
                 message_lower = message.lower()
-                product_keywords = ["product", "item", "available", "stock", "buy", "shop", "find", "search", "show me", "what do you have", "recommend", "suggest"]
-                needs_search = any(keyword in message_lower for keyword in product_keywords)
+                
+                # Check if this looks like a question about recently shown products
+                is_question_about_shown_products = False
+                if session_id in self.recent_products and self.recent_products[session_id]:
+                    recent_product_names = [p.get('name', '').lower() for p in self.recent_products[session_id]]
+                    for product_name in recent_product_names:
+                        if product_name in message_lower:
+                            is_question_about_shown_products = True
+                            break
+                
+                # Only trigger product search for explicit browsing requests
+                explicit_search_keywords = ["show me", "find me", "search for", "what products", "what do you have", "what's available"]
+                needs_search = any(keyword in message_lower for keyword in explicit_search_keywords) and not is_question_about_shown_products
                 
                 intent_data = {
                     "needs_product_search": needs_search,
                     "search_query": message if needs_search else "",
                     "intent_type": "product_search" if needs_search else "conversation",
-                    "confidence": 0.7 if needs_search else 0.5
+                    "confidence": 0.3  # Low confidence since AI parsing failed
                 }
+                logger.warning(f"Using fallback intent analysis: {intent_data}")
             
             logger.info(f"Intent analysis for session {session_id}: {intent_data}")
             return intent_data
