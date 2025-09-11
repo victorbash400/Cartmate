@@ -143,56 +143,14 @@ class OrchestratorAgent(BaseAgent):
                 "needs_product_search": boolean,
                 "needs_price_comparison": boolean,
                 "search_query": "extracted product search terms if needed",
-                "intent_type": "conversation|product_search|style_analysis|cart_management|price_comparison",
+                "intent_type": "conversation|product_search|price_comparison",
                 "confidence": 0.0-1.0
             }}
             
-            CRITICAL: If the user mentions a product name that appears in the "Recently shown products" list above, 
-            and they are asking a QUESTION about it (like "how much", "what's the price", "tell me about"), 
-            then set needs_product_search to FALSE (conversational).
-            
-            Set needs_price_comparison to TRUE if the user is:
-            - Asking to compare prices ("is this a fair price?", "compare prices", "check if this is a good deal")
-            - Asking about price competitiveness ("how does this price compare?", "is this overpriced?")
-            - Requesting price analysis ("what's the market price?", "find similar products with prices")
-            - Asking about deals or discounts ("are there better deals?", "find cheaper alternatives")
-            
-            Set needs_product_search to TRUE ONLY if the user is:
-            - Asking to browse/see products ("what products", "show me items", "what do you have")
-            - Looking for NEW items ("find shoes", "search for dresses", "show me hairdryers")
-            - Browsing inventory ("what's available", "what can I buy")
-            - Requesting product recommendations ("suggest something", "what should I get")
-            
-            Set needs_product_search to FALSE if the user is:
-            - Asking questions about recently shown products ("how much is the hairdryer?", "tell me about that watch")
-            - Asking for details about specific items that were just displayed
-            - Making conversational comments about shown products
-            - Asking follow-up questions about products
-            - ANY question about a product that was recently shown (price, details, etc.)
-            
-            Examples that need product search:
-            - "what products are available?"
-            - "show me some clothes"
-            - "find me a dress"
-            - "what do you have in stock?"
-            - "I'm looking for shoes"
-            - "show me hairdryers"
-            
-            Examples that need price comparison:
-            - "is this a fair price?" (if referring to recently shown product)
-            - "compare prices for that watch" (if watch was recently shown)
-            - "check if this is a good deal"
-            - "how does this price compare to other retailers?"
-            - "find similar products with better prices"
-            - "is this overpriced?"
-            
-            Examples that DON'T need product search (conversational):
-            - "how much is the hairdryer?" (if hairdryer was recently shown)
-            - "tell me about that watch" (if watch was recently shown)
-            - "what's the price of the sunglasses?" (if sunglasses were recently shown)
-            - "I like that mug" (if mug was recently shown)
-            - "how much is the tank top?" (if tank top was recently shown)
-            - "what's the price of the bamboo glass jar?" (if bamboo glass jar was recently shown)
+            Rules:
+            - If user mentions a recently shown product and asks questions about it, set needs_product_search to FALSE
+            - Set needs_price_comparison to TRUE for price comparison requests about shown products
+            - Set needs_product_search to TRUE for browsing/searching for new products
             """
             
             # Send notification to frontend about analysis
@@ -251,40 +209,17 @@ class OrchestratorAgent(BaseAgent):
                 logger.error(f"Failed to parse AI intent analysis: {e}")
                 logger.error(f"Raw response was: {response.text}")
                 
-                # Smart fallback - default to conversational for questions about shown products
+                # Simple fallback logic
                 message_lower = message.lower()
-                
-                # Check if this looks like a question about recently shown products
-                is_question_about_shown_products = False
-                if session_id in self.recent_products and self.recent_products[session_id]:
-                    recent_product_names = [p.get('name', '').lower() for p in self.recent_products[session_id]]
-                    for product_name in recent_product_names:
-                        if product_name in message_lower:
-                            is_question_about_shown_products = True
-                            break
-                
-                # Check for price comparison intent
-                price_comparison_keywords = ["compare price", "fair price", "good deal", "overpriced", "cheaper", "better price", "market price", "competitive price"]
-                needs_price_comparison = any(keyword in message_lower for keyword in price_comparison_keywords) and is_question_about_shown_products
-                
-                # Enhanced product search keywords - be more inclusive
-                explicit_search_keywords = [
-                    "show me", "find me", "search for", "what products", "what do you have", 
-                    "what's available", "products", "browse", "catalog", "items", "everything",
-                    "all", "list", "see", "find", "search", "available", "have"
-                ]
-                needs_search = any(keyword in message_lower for keyword in explicit_search_keywords) and not is_question_about_shown_products
-                
-                # If message is very short and contains "products", assume they want to see products
-                if len(message.strip()) <= 10 and "product" in message_lower and not is_question_about_shown_products:
-                    needs_search = True
+                needs_search = any(keyword in message_lower for keyword in ["show me", "find", "search", "products", "browse"])
+                needs_price_comparison = any(keyword in message_lower for keyword in ["compare", "price", "deal"])
                 
                 intent_data = {
                     "needs_product_search": needs_search,
                     "needs_price_comparison": needs_price_comparison,
                     "search_query": message if needs_search else "",
                     "intent_type": "price_comparison" if needs_price_comparison else ("product_search" if needs_search else "conversation"),
-                    "confidence": 0.3  # Low confidence since AI parsing failed
+                    "confidence": 0.3
                 }
                 logger.warning(f"Using fallback intent analysis: {intent_data}")
             
@@ -636,65 +571,16 @@ class OrchestratorAgent(BaseAgent):
                     await websocket_gateway.send_message(session_id, "text", formatted_response)
                     
                 elif request_info["request_type"] == "price_comparison":
-                    # Send final completion step
-                    final_agent_steps = [
-                        AgentStep(
-                            id="calling",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="Connected"
-                        ),
-                        AgentStep(
-                            id="searching",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="Search completed"
-                        ),
-                        AgentStep(
-                            id="api_request",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="API request completed"
-                        ),
-                        AgentStep(
-                            id="parsing",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="Analysis completed"
-                        )
-                    ]
-                    await websocket_gateway.update_agent_communication(session_id, final_agent_steps)
-                    
                     # Format price comparison results for user
                     price_data = response.content
                     formatted_response = await self._format_price_comparison_response(price_data, session_id)
                     
-                    # Send final success step with price comparison data
+                    # Send final success steps
                     final_agent_steps = [
-                        AgentStep(
-                            id="calling",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="Connected"
-                        ),
-                        AgentStep(
-                            id="searching",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="Search completed"
-                        ),
-                        AgentStep(
-                            id="api_request",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="API request completed"
-                        ),
-                        AgentStep(
-                            id="parsing",
-                            type="success",
-                            agent_name="Price Comparison Agent",
-                            message="Analysis completed"
-                        )
+                        AgentStep(id="calling", type="success", agent_name="Price Comparison Agent", message="Connected"),
+                        AgentStep(id="searching", type="success", agent_name="Price Comparison Agent", message="Search completed"),
+                        AgentStep(id="api_request", type="success", agent_name="Price Comparison Agent", message="API request completed"),
+                        AgentStep(id="parsing", type="success", agent_name="Price Comparison Agent", message="Analysis completed")
                     ]
                     
                     # Send agent communication update with price comparison data
@@ -738,38 +624,30 @@ class OrchestratorAgent(BaseAgent):
         return response
 
     async def _format_price_comparison_response(self, price_data: Dict[str, Any], session_id: str) -> str:
-        """
-        Format price comparison results into a conversational response.
-        """
+        """Format price comparison results into a conversational response."""
         try:
             if price_data.get("error"):
                 return f"Sorry, I ran into an issue while checking prices: {price_data['error']}. Let me try again in a moment."
             
-            original_product = price_data.get("original_product", {})
-            product_name = original_product.get("name", "Unknown Product")
+            product_name = price_data.get("original_product", {}).get("name", "Unknown Product")
             current_price = price_data.get("current_price", "Unknown")
             price_analysis = price_data.get("price_analysis", "")
-            similar_products = price_data.get("similar_products", [])
-            sources = price_data.get("sources", [])
             
-            # Start with conversational tone
             response = f"Here's what I found about the {product_name} at {current_price}:\n\n"
-            
-            # Include the price analysis (which is now conversational)
             if price_analysis:
                 response += f"{price_analysis}\n\n"
             
-            # Add similar products in a friendly way
+            similar_products = price_data.get("similar_products", [])
             if similar_products:
                 response += f"I found {len(similar_products)} similar options for you:\n"
-                for i, product in enumerate(similar_products[:3], 1):  # Show top 3
+                for product in similar_products[:3]:
                     name = product.get("name", "Similar product")
                     price = product.get("price", "Unknown")
                     retailer = product.get("retailer", "Various retailers")
                     response += f"• {name} - {price} ({retailer})\n"
                 response += "\n"
             
-            # Add sources info if available
+            sources = price_data.get("sources", [])
             if sources:
                 response += f"*Based on analysis of {len(sources)} market sources. Prices can vary by location and retailer.*"
             else:
@@ -782,9 +660,7 @@ class OrchestratorAgent(BaseAgent):
             return "I found some price comparison data, but had trouble formatting it. The analysis is available in the detailed results below."
 
     def _find_product_in_message(self, message: str, session_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Find the specific product the user is asking about in their message.
-        """
+        """Find the specific product the user is asking about in their message."""
         try:
             if session_id not in self.recent_products or not self.recent_products[session_id]:
                 return None
@@ -796,28 +672,16 @@ class OrchestratorAgent(BaseAgent):
             for product in recent_products:
                 product_name = product.get('name', '').lower()
                 if product_name in message_lower:
-                    logger.info(f"Found exact product match: '{product_name}' in message '{message}'")
                     return product
             
-            # Look for partial matches (e.g., "candle" matches "Candle Holder")
+            # Look for partial matches
             for product in recent_products:
                 product_name = product.get('name', '').lower()
-                # Split product name into words and check if any word is in the message
                 product_words = product_name.split()
                 for word in product_words:
-                    if len(word) > 3 and word in message_lower:  # Only match words longer than 3 chars
-                        logger.info(f"Found partial product match: '{word}' from '{product_name}' in message '{message}'")
+                    if len(word) > 3 and word in message_lower:
                         return product
             
-            # Look for category matches (e.g., "mug" matches products with "mug" in categories)
-            for product in recent_products:
-                categories = product.get('categories', [])
-                for category in categories:
-                    if category.lower() in message_lower:
-                        logger.info(f"Found category match: '{category}' for product '{product.get('name')}' in message '{message}'")
-                        return product
-            
-            logger.info(f"No product match found in message '{message}'")
             return None
             
         except Exception as e:
