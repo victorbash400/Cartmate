@@ -24,7 +24,10 @@ class A2ARequestType(str, Enum):
     GET_PRODUCT_DETAILS = "get_product_details"
     CREATE_CART = "create_cart"
     ADD_TO_CART = "add_to_cart"
+    UPDATE_CART_ITEM = "update_cart_item"
+    REMOVE_FROM_CART = "remove_from_cart"
     GET_CART = "get_cart"
+    CLEAR_CART = "clear_cart"
     ANALYZE_STYLE = "analyze_style"
     COMPARE_PRICES = "compare_prices"
 

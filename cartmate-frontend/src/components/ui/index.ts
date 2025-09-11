@@ -4,3 +4,4 @@
 export { default as Sidebar } from './Sidebar';
 export { default as AgentGroupChat } from './AgentGroupChat';
 export { default as PersonalizationModal } from './PersonalizationModal';
+export { default as CartModal } from './CartModal';

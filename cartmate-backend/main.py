@@ -9,6 +9,7 @@ from agents.agent_manager import agent_manager
 from api.websocket import websocket_gateway
 from api.message_router import route_message
 from api.personalization import router as personalization_router
+from api.cart import router as cart_router
 
 # Set up logging
 setup_logging()
@@ -30,6 +31,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(personalization_router)
+app.include_router(cart_router)
 
 @app.on_event("startup")
 async def startup_event():

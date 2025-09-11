@@ -53,6 +53,36 @@ class ProductCatalogClient:
             print(f"DEBUG: Returning empty list instead of mock products")
             return []
     
+    async def get_product(self, product_id: str):
+        """Get a single product by ID"""
+        try:
+            request = demo_pb2.GetProductRequest(id=product_id)
+            response = self.stub.GetProduct(request)
+            
+            # Convert protobuf to dict
+            return {
+                "id": response.id,
+                "name": response.name,
+                "description": response.description,
+                "picture": response.picture,
+                "price_usd": {
+                    "currency_code": response.price_usd.currency_code,
+                    "units": response.price_usd.units,
+                    "nanos": response.price_usd.nanos
+                },
+                "categories": list(response.categories)
+            }
+        except grpc.RpcError as e:
+            print(f"Error getting product {product_id}: {e}")
+            # Try to find in mock products as fallback
+            for mock_product in self._get_mock_products(""):
+                if mock_product['id'] == product_id:
+                    return mock_product
+            return None
+        except Exception as e:
+            print(f"Unexpected error getting product {product_id}: {e}")
+            return None
+    
     def _get_mock_products(self, query: str):
         """Return mock products when gRPC service is unavailable"""
         # Create mock product data based on real Online Boutique products

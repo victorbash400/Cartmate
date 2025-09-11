@@ -31,7 +31,7 @@ class KubernetesPortForwarder:
                 "service": "cartservice", 
                 "local_port": 50052,
                 "remote_port": 7070,
-                "required": False
+                "required": True
             },
             "paymentservice": {
                 "service": "paymentservice",

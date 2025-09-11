@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CircleChevronLeft, CircleChevronRight, User, LogOut, PersonStanding, ShoppingBag } from 'lucide-react';
 import PersonalizationModal from './PersonalizationModal';
+import CartModal from './CartModal';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
   const [isMobile, setIsMobile] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isPersonalizationModalOpen, setIsPersonalizationModalOpen] = useState(false);
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -41,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
   };
 
   const handleCartClick = () => {
-    console.log('Cart clicked');
+    setIsCartModalOpen(true);
   };
 
   const handlePersonalizationClick = () => {
@@ -222,6 +224,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
         isOpen={isPersonalizationModalOpen}
         onClose={() => setIsPersonalizationModalOpen(false)}
         onSave={handlePersonalizationSave}
+      />
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
+        sessionId={connectionInfo?.sessionId}
       />
     </>
   );

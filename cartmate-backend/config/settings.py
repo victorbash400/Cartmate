@@ -13,13 +13,13 @@ class Settings(BaseSettings):
     
     # gRPC Services
     PRODUCT_CATALOG_SERVICE_HOST: str = "localhost"
-    PRODUCT_CATALOG_SERVICE_PORT: int = 50051
+    PRODUCT_CATALOG_SERVICE_PORT: int = 3550
     
     CART_SERVICE_HOST: str = "localhost"
     CART_SERVICE_PORT: int = 50052
     
     PAYMENT_SERVICE_HOST: str = "localhost"
-    PAYMENT_SERVICE_PORT: int = 50053
+    PAYMENT_SERVICE_PORT: int = 50051
     
     # Vertex AI Settings
     VERTEX_AI_PROJECT_ID: Optional[str] = None
