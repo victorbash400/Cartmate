@@ -34,6 +34,7 @@ class A2ARequestType(str, Enum):
     VALIDATE_ORDER = "validate_order"
     GET_ORDER_STATUS = "get_order_status"
     CANCEL_ORDER = "cancel_order"
+    GET_ADS = "get_ads"
 
 
 class A2AMessage(BaseModel):

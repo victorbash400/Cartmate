@@ -44,6 +44,12 @@ class KubernetesPortForwarder:
                 "local_port": 5050,
                 "remote_port": 5050,
                 "required": True
+            },
+            "adservice": {
+                "service": "adservice",
+                "local_port": 9555,
+                "remote_port": 9555,
+                "required": False
             }
         }
     

@@ -93,14 +93,14 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-              <Palette className="w-4 h-4 text-orange-600" />
+            <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">P</span>
             </div>
-            <h2 className="text-lg font-medium text-gray-900">Personalize Your Style</h2>
+            <h2 className="text-base font-medium text-gray-900">Personalize</h2>
           </div>
           <button
             onClick={handleClose}
-            className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            className="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
           >
             <X className="w-3 h-3 text-gray-600" />
           </button>
@@ -118,8 +118,8 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
               <div
                 className={`border-2 border-dashed rounded-lg p-3 text-center transition-colors cursor-pointer ${
                   isDragging 
-                    ? 'border-orange-400 bg-orange-50' 
-                    : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'
+                    ? 'border-gray-400 bg-gray-50' 
+                    : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -150,7 +150,7 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
                     </div>
                     <div>
                       <p className="text-xs text-gray-600">
-                        <span className="text-orange-600 font-medium">Click to browse</span>
+                        <span className="text-gray-700 font-medium">Click to browse</span>
                       </p>
                       <p className="text-xs text-gray-500">JPG, PNG</p>
                     </div>
@@ -171,7 +171,7 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
                   value={stylePreferences}
                   onChange={(e) => setStylePreferences(e.target.value)}
                   placeholder="casual, minimalist, bohemian..."
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-transparent resize-none text-xs"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-500 focus:border-transparent resize-none text-xs"
                   rows={2}
                 />
               </div>
@@ -189,7 +189,7 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
                       type="number"
                       value={budgetRange.min}
                       onChange={(e) => setBudgetRange(prev => ({ ...prev, min: parseInt(e.target.value) || 0 }))}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-transparent text-xs"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-500 focus:border-transparent text-xs"
                       min="0"
                     />
                   </div>
@@ -199,7 +199,7 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
                       type="number"
                       value={budgetRange.max}
                       onChange={(e) => setBudgetRange(prev => ({ ...prev, max: parseInt(e.target.value) || 0 }))}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-transparent text-xs"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-500 focus:border-transparent text-xs"
                       min="0"
                     />
                   </div>
@@ -220,7 +220,7 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="flex-1 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+            className="flex-1 px-3 py-2 bg-black hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
             {isLoading ? (
               <>

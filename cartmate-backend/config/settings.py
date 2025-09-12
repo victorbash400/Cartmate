@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     PAYMENT_SERVICE_HOST: str = "localhost"
     PAYMENT_SERVICE_PORT: int = 50051
     
+    AD_SERVICE_HOST: str = "localhost"
+    AD_SERVICE_PORT: int = 9555
+    
     # Vertex AI Settings
     VERTEX_AI_PROJECT_ID: Optional[str] = None
     VERTEX_AI_LOCATION: str = "us-central1"

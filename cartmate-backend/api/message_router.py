@@ -50,6 +50,35 @@ async def route_message(session_id: str, message: WebSocketMessage):
             logger.warning(f"Received text message with non-string content for session {session_id}")
             await websocket_gateway.send_error(session_id, "Invalid message content", "Expected a string for 'text' message type.")
     
+    elif message.type == "ads_request":
+        # Route ads requests to the ads agent
+        ads_agent = agent_manager.get_agent_by_type("ads")
+        if ads_agent and ads_agent.is_running:
+            # Create A2A request for ads
+            from models.a2a import A2ARequest, A2ARequestType
+            import uuid
+            
+            request_content = {
+                "session_id": session_id,
+                "context_keys": message.content.get("context_keys", []) if isinstance(message.content, dict) else []
+            }
+            
+            request = A2ARequest(
+                id=str(uuid.uuid4()),
+                sender="websocket_gateway",
+                receiver=ads_agent.agent_id,
+                request_type=A2ARequestType.GET_ADS,
+                conversation_id=session_id,
+                content=request_content,
+                requires_ack=True
+            )
+            
+            success = await ads_agent.handle_request(request)
+            if not success:
+                logger.error(f"Failed to handle ads request for session {session_id}")
+        else:
+            logger.warning(f"Ads agent not available for session {session_id}")
+    
     else:
         logger.warning(f"No handler for message type '{message.type}'")
         await websocket_gateway.send_error(session_id, "Unknown message type", f"No handler for '{message.type}'")

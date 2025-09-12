@@ -53,13 +53,20 @@ interface Message {
   };
 }
 
+interface Ad {
+  redirect_url: string;
+  text: string;
+}
+
 interface ChatInterfaceProps {
   onChatStartedChange: (started: boolean) => void;
   onConnectionInfoChange?: (connectionInfo: { sessionId: string; userId: string } | null) => void;
+  onAdsUpdate?: (ads: Ad[], context: string[]) => void;
+  onAdsLoading?: (loading: boolean) => void;
   newChatTrigger?: number;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onConnectionInfoChange, newChatTrigger }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onConnectionInfoChange, onAdsUpdate, onAdsLoading, newChatTrigger }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -212,6 +219,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           return;
         }
         
+        // Handle ads messages
+        if (messageData.type === 'ads') {
+          const adsData = messageData.content;
+          if (adsData && onAdsUpdate) {
+            onAdsUpdate(adsData.ads || [], adsData.context || []);
+          }
+          return;
+        }
+        
         // Handle agent communication messages
         if (messageData.type === 'agent_communication') {
           console.log('Handling agent_communication message:', messageData);
@@ -290,6 +306,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
         const products = detectProducts(messageData);
         const priceComparison = detectPriceComparison(messageData);
         const checkoutFormData = detectCheckoutForm(messageData);
+        
+        // Request contextual ads when products are shown
+        if (products && products.length > 0) {
+          const categories = products.map(p => p.categories || []).flat();
+          const uniqueCategories = [...new Set(categories)];
+          if (uniqueCategories.length > 0) {
+            setTimeout(() => requestAds(uniqueCategories), 500);
+          }
+        }
         
         // Check if this is an agent communication update
         const isAgentUpdate = messageData.type === 'agent_communication_update';
@@ -432,6 +457,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
     
     if (!hasStartedChat) {
       setHasStartedChat(true);
+      // Request initial ads when chat starts
+      setTimeout(() => requestAds(), 1000);
     }
 
     const newMessage: Message = {
@@ -471,6 +498,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
       }));
     } catch (error) {
       console.error('Error submitting checkout form:', error);
+    }
+  };
+
+  const requestAds = (contextKeys: string[] = []) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) return;
+    
+    try {
+      ws.current.send(JSON.stringify({
+        type: 'ads_request',
+        content: {
+          context_keys: contextKeys
+        }
+      }));
+      
+      if (onAdsLoading) {
+        onAdsLoading(true);
+      }
+    } catch (error) {
+      console.error('Error requesting ads:', error);
     }
   };
 

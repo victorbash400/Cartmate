@@ -9,6 +9,7 @@ from agents.product_discovery import product_discovery_agent
 from agents.price_comparison import price_comparison_agent
 from agents.cart_management import cart_management_agent
 from agents.checkout import checkout_agent
+from agents.ads import ads_agent
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class AgentManager:
             price_comparison_agent,
             cart_management_agent,
             checkout_agent,
+            ads_agent,
             # Add more agents here as they're implemented
         ]
         logger.info(f"Registered {len(self.agents)} agents for startup")
