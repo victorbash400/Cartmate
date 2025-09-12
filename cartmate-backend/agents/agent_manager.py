@@ -4,10 +4,11 @@ Agent Manager - Handles startup, shutdown, and lifecycle of all agents
 import logging
 import asyncio
 from typing import List, Dict
-from agents.orchestrator import orchestrator_agent
+from agents.orchestrator_refactored import orchestrator_agent_refactored
 from agents.product_discovery import product_discovery_agent
 from agents.price_comparison import price_comparison_agent
 from agents.cart_management import cart_management_agent
+from agents.checkout import checkout_agent
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,11 @@ class AgentManager:
     def register_agents(self):
         """Register all agents that should be started"""
         self.agents = [
-            orchestrator_agent,
+            orchestrator_agent_refactored,
             product_discovery_agent,
             price_comparison_agent,
             cart_management_agent,
+            checkout_agent,
             # Add more agents here as they're implemented
         ]
         logger.info(f"Registered {len(self.agents)} agents for startup")

@@ -43,6 +43,18 @@ class CartManagementAgent(BaseAgent):
             
         logger.info("Cart Management Agent started and ready for cart operations")
 
+    def _parse_request_content(self, request: A2ARequest) -> Dict[str, Any]:
+        """Parse request content, handling both dict and string formats"""
+        if isinstance(request.content, str):
+            import json
+            try:
+                return json.loads(request.content)
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse content as JSON: {request.content}")
+                raise ValueError(f"Invalid JSON content: {request.content}")
+        else:
+            return request.content
+
     async def _initialize_cart_connection(self, max_retries=5, delay=2):
         """Initialize gRPC connection with retry logic"""
         from config.settings import settings
@@ -140,8 +152,9 @@ class CartManagementAgent(BaseAgent):
     async def _handle_add_to_cart(self, request: A2ARequest) -> bool:
         """Add items to cart"""
         try:
-            session_id = request.content.get("session_id")
-            products = request.content.get("products", [])
+            content_dict = self._parse_request_content(request)
+            session_id = content_dict.get("session_id")
+            products = content_dict.get("products", [])
             
             if not session_id or not products:
                 logger.error("Missing session_id or products in add to cart request")
@@ -254,9 +267,10 @@ class CartManagementAgent(BaseAgent):
     async def _handle_update_cart_item(self, request: A2ARequest) -> bool:
         """Update quantity of an item in cart"""
         try:
-            session_id = request.content.get("session_id")
-            product_id = request.content.get("product_id")
-            quantity = request.content.get("quantity")
+            content_dict = self._parse_request_content(request)
+            session_id = content_dict.get("session_id")
+            product_id = content_dict.get("product_id")
+            quantity = content_dict.get("quantity")
             
             if not session_id or not product_id or quantity is None:
                 logger.error("Missing required fields in update cart item request")

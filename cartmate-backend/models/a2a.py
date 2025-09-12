@@ -30,6 +30,10 @@ class A2ARequestType(str, Enum):
     CLEAR_CART = "clear_cart"
     ANALYZE_STYLE = "analyze_style"
     COMPARE_PRICES = "compare_prices"
+    PROCESS_CHECKOUT = "process_checkout"
+    VALIDATE_ORDER = "validate_order"
+    GET_ORDER_STATUS = "get_order_status"
+    CANCEL_ORDER = "cancel_order"
 
 
 class A2AMessage(BaseModel):

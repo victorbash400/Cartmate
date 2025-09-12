@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     CART_SERVICE_HOST: str = "localhost"
     CART_SERVICE_PORT: int = 50052
     
+    CHECKOUT_SERVICE_HOST: str = "localhost"
+    CHECKOUT_SERVICE_PORT: int = 5050
+    
     PAYMENT_SERVICE_HOST: str = "localhost"
     PAYMENT_SERVICE_PORT: int = 50051
     

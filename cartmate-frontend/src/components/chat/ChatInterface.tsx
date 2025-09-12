@@ -7,6 +7,7 @@ import AgentStepSequence from './AgentStepSequence';
 import ConnectionStatus from './ConnectionStatus';
 import ProductGrid from './ProductGrid';
 import PriceComparison from './PriceComparison';
+import { CheckoutForm } from './CheckoutForm';
 import type { Product } from './types'; // Instead of from './ProductCard'
 interface Message {
   id: number;
@@ -17,8 +18,28 @@ interface Message {
   isConnectionStatus?: boolean;
   isProductMessage?: boolean;
   isPriceComparisonMessage?: boolean;
+  isCheckoutFormMessage?: boolean;
   products?: Product[];
   priceComparison?: any;
+  checkoutFormData?: {
+    message: string;
+    form_data: {
+      email: string;
+      address: {
+        street_address: string;
+        city: string;
+        state: string;
+        country: string;
+        zip_code: string;
+      };
+      credit_card: {
+        number: string;
+        cvv: string;
+        expiration_year: string;
+        expiration_month: string;
+      };
+    };
+  };
   agentSteps?: Array<{
     id: string;
     type: 'calling' | 'processing' | 'success' | 'error';
@@ -100,6 +121,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
       if (typeof messageData.content === 'object' && messageData.content.price_comparison) {
         return messageData.content.price_comparison;
       }
+    }
+    return null;
+  };
+
+  const detectCheckoutForm = (messageData: any): any | null => {
+    // Check if the message contains checkout form data
+    if (messageData.type === 'checkout_form' && messageData.content) {
+      return messageData.content;
     }
     return null;
   };
@@ -257,9 +286,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           messageText = messageData.content || JSON.stringify(messageData);
         }
         
-        // Check if message contains products or price comparison data
+        // Check if message contains products, price comparison, or checkout form data
         const products = detectProducts(messageData);
         const priceComparison = detectPriceComparison(messageData);
+        const checkoutFormData = detectCheckoutForm(messageData);
         
         // Check if this is an agent communication update
         const isAgentUpdate = messageData.type === 'agent_communication_update';
@@ -273,8 +303,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           isAgentCommunication: isAgentUpdate,
           isProductMessage: products !== null,
           isPriceComparisonMessage: priceComparison !== null,
+          isCheckoutFormMessage: checkoutFormData !== null,
           products: products || undefined,
-          priceComparison: priceComparison || undefined
+          priceComparison: priceComparison || undefined,
+          checkoutFormData: checkoutFormData || undefined
         };
         
         if (isAgentUpdate) {
@@ -428,6 +460,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
     }
   };
 
+  const handleCheckoutFormSubmit = async (formData: any) => {
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) return;
+
+    try {
+      // Send the checkout form data to the backend
+      ws.current.send(JSON.stringify({
+        type: 'text',
+        content: `Checkout with email: ${formData.email}, address: ${formData.address.street_address}, ${formData.address.city}, ${formData.address.state}, ${formData.address.country} ${formData.address.zip_code}, payment: ${formData.credit_card.number}`
+      }));
+    } catch (error) {
+      console.error('Error submitting checkout form:', error);
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full w-full relative ${hasStartedChat ? 'chat-started' : 'welcome-state'}`}>
       {!hasStartedChat ? (
@@ -467,6 +513,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                           <div className="w-full">
                             {/* Show price comparison component */}
                             <PriceComparison priceComparison={message.priceComparison} />
+                          </div>
+                        ) : message.isCheckoutFormMessage && message.checkoutFormData ? (
+                          <div className="w-full">
+                            {/* Show checkout form component */}
+                            <CheckoutForm 
+                              message={message.checkoutFormData.message}
+                              formData={message.checkoutFormData.form_data}
+                              onSubmit={handleCheckoutFormSubmit}
+                            />
                           </div>
                         ) : message.isProductMessage && message.products ? (
                           <div className="w-full">

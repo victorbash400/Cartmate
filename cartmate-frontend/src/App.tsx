@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { MessagesSquare, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import Sidebar from './components/ui/Sidebar'
 import ChatInterface from './components/chat/ChatInterface'
-import AgentGroupChat from './components/ui/AgentGroupChat'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isAgentGroupVisible, setIsAgentGroupVisible] = useState(false)
   const [newChatTrigger, setNewChatTrigger] = useState(0)
   const [connectionInfo, setConnectionInfo] = useState<{ sessionId: string; userId: string } | null>(null)
   useEffect(() => {
@@ -25,10 +23,6 @@ function App() {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  const toggleAgentGroup = () => {
-    setIsAgentGroupVisible(!isAgentGroupVisible)
   }
 
   const [isWelcomeScreenActive, setIsWelcomeScreenActive] = useState(true)
@@ -57,12 +51,6 @@ function App() {
           onConnectionInfoChange={handleConnectionInfoChange}
           newChatTrigger={newChatTrigger} 
         />
-        {!isWelcomeScreenActive && (
-          <AgentGroupChat 
-            isVisible={isAgentGroupVisible} 
-            toggleVisibility={toggleAgentGroup} 
-          />
-        )}
         
         {!isWelcomeScreenActive && (
           <>
@@ -76,16 +64,6 @@ function App() {
             >
               <MessageCircle size={14} />
               <span className="ml-1.5 text-xs font-medium">New</span>
-            </button>
-
-            {/* Agent Group Chat Button - Top Right */}
-            <button 
-              className="absolute top-4 right-4 flex items-center py-1.5 px-3 bg-black text-white rounded-md cursor-pointer transition-all duration-200 hover:bg-gray-800 z-50"
-              onClick={toggleAgentGroup}
-              title={isAgentGroupVisible ? 'Hide Agent Chat' : 'Show Agent Chat'}
-            >
-              <MessagesSquare size={14} />
-              {!isAgentGroupVisible && <span className="ml-1.5 text-xs font-medium">Agents</span>}
             </button>
           </>
         )}

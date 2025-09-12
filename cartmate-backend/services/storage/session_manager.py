@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from models.user import Session, ConversationContext
 from services.storage.redis_client import redis_client
+from services.conversation_memory import conversation_memory
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,9 @@ class SessionManager:
             # Reset context to empty state
             session.context = {}
             
+            # Clear conversation memory
+            await conversation_memory.clear_conversation_history(session_id)
+            
             # Store updated session
             session_key = self._get_session_key(session_id)
             await redis_client.set(
@@ -99,7 +103,7 @@ class SessionManager:
                 expire=self.session_ttl
             )
             
-            logger.info(f"Reset context for session {session_id}")
+            logger.info(f"Reset context and conversation history for session {session_id}")
             return True
         except Exception as e:
             logger.error(f"Error resetting context for session {session_id}: {e}")

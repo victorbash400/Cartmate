@@ -38,6 +38,12 @@ class KubernetesPortForwarder:
                 "local_port": 50051,
                 "remote_port": 50051,
                 "required": False
+            },
+            "checkoutservice": {
+                "service": "checkoutservice",
+                "local_port": 5050,
+                "remote_port": 5050,
+                "required": True
             }
         }
     
