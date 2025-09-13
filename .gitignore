@@ -28,7 +28,7 @@ lerna-debug.log*
 Thumbs.db
 
 # Google Cloud Service Account Credentials
-*-*.json
+*-*-*.json
 
 # Python
 venv/
