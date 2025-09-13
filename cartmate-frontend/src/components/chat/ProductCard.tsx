@@ -28,7 +28,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     } else if (product.picture.startsWith('/static/')) {
       // Online Boutique static images - use the deployed frontend service
       // The frontend service is exposed as LoadBalancer with external IP
-      const frontendUrl = `http://35.193.91.35${product.picture}`;
+      const frontendUrl = `http://34.10.248.251${product.picture}`;
       console.log('ProductCard - Using Online Boutique frontend service:', frontendUrl);
       return frontendUrl;
     } else if (product.picture.startsWith('/')) {

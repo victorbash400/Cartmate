@@ -14,7 +14,7 @@ interface AgentStepSequenceProps {
   isActive?: boolean;
 }
 
-const AgentStepSequence: React.FC<AgentStepSequenceProps> = ({ steps, isActive = false }) => {
+const AgentStepSequence: React.FC<AgentStepSequenceProps> = ({ steps }) => {
   const getStepIcon = (step: AgentStep, index: number) => {
     const isLastStep = index === steps.length - 1;
     const hasNextStep = index < steps.length - 1;
@@ -49,7 +49,7 @@ const AgentStepSequence: React.FC<AgentStepSequenceProps> = ({ steps, isActive =
     return <div className="w-3 h-3 rounded-full bg-gray-300"></div>;
   };
 
-  const getStepStatus = (step: AgentStep, index: number) => {
+  const getStepStatus = (step: AgentStep) => {
     if (step.type === 'error') {
       return 'text-red-700';
     } else {
@@ -78,7 +78,7 @@ const AgentStepSequence: React.FC<AgentStepSequenceProps> = ({ steps, isActive =
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-gray-900">{step.agentName}</span>
                 <span className="text-gray-400">•</span>
-                <span className={`text-xs ${getStepStatus(step, index)}`}>{step.message}</span>
+                <span className={`text-xs ${getStepStatus(step)}`}>{step.message}</span>
               </div>
               
               {/* Step number */}

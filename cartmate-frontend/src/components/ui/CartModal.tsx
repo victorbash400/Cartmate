@@ -44,7 +44,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, sessionId }) => 
       return imageUrl; // Full URL
     } else if (imageUrl.startsWith('/static/')) {
       // Online Boutique static images - use the deployed frontend service
-      const frontendUrl = `http://35.193.91.35${imageUrl}`;
+      const frontendUrl = `http://34.10.248.251${imageUrl}`;
       return frontendUrl;
     } else if (imageUrl.startsWith('/')) {
       return imageUrl; // Absolute path
@@ -75,7 +75,8 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, sessionId }) => 
     setError(null);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/cart/${sessionId}`);
+      const apiUrl = window.location.hostname === '35.222.124.181' ? 'http://34.42.109.18:8000' : 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/cart/${sessionId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -143,13 +144,14 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, sessionId }) => 
     setError(null);
     
     try {
+      const apiUrl = window.location.hostname === '35.222.124.181' ? 'http://34.42.109.18:8000' : 'http://localhost:8000';
       // Apply all pending changes
       const promises = [];
       
       // Handle removals
       for (const productId of pendingChanges.removes) {
         promises.push(
-          fetch(`http://localhost:8000/api/cart/${sessionId}/remove`, {
+          fetch(`${apiUrl}/api/cart/${sessionId}/remove`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_id: productId })
@@ -160,7 +162,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, sessionId }) => 
       // Handle updates
       for (const [productId, quantity] of Object.entries(pendingChanges.updates)) {
         promises.push(
-          fetch(`http://localhost:8000/api/cart/${sessionId}/update`, {
+          fetch(`${apiUrl}/api/cart/${sessionId}/update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_id: productId, quantity })
@@ -203,7 +205,8 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, sessionId }) => 
     
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/cart/${sessionId}/clear`, {
+      const apiUrl = window.location.hostname === '35.222.124.181' ? 'http://34.42.109.18:8000' : 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/cart/${sessionId}/clear`, {
         method: 'POST',
       });
       

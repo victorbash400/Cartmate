@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartmate-frontend
+  labels:
+    app: cartmate-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cartmate-frontend
+  template:
+    metadata:
+      labels:
+        app: cartmate-frontend
+    spec:
+      containers:
+      - name: cartmate-frontend
+        image: gcr.io/imposing-kite-461508-v4/cartmate-frontend:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: VITE_API_URL
+          value: "http://35.222.124.181"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartmate-frontend
+  labels:
+    app: cartmate-frontend
+spec:
+  selector:
+    app: cartmate-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  type: LoadBalancer

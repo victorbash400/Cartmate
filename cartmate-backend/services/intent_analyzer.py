@@ -5,10 +5,7 @@ import logging
 import asyncio
 import json
 from typing import Dict, Any, Optional, List
-from google.cloud import aiplatform
-from google.oauth2 import service_account
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel
+from services.vertex_ai_utils import initialize_vertex_ai
 from services.conversation_memory import conversation_memory
 
 logger = logging.getLogger(__name__)
@@ -25,28 +22,10 @@ class IntentAnalyzer:
     
     def _initialize_vertex_ai(self):
         """Initialize Vertex AI connection"""
-        try:
-            # Configure the project and location
-            project_id = "imposing-kite-461508-v4"
-            location = "us-central1"
-            
-            # Path to your service account key file
-            key_path = "C:\\Users\\Victo\\Desktop\\CartMate\\cartmate-backend\\imposing-kite-461508-v4-71f861a0eecc.json"
-            
-            # Authenticate using the service account key
-            credentials = service_account.Credentials.from_service_account_file(key_path)
-            
-            # Initialize Vertex AI
-            vertexai.init(project=project_id, location=location, credentials=credentials)
-            
-            # Load the generative model
-            self.chat_model = GenerativeModel("gemini-2.5-flash")
-            
-            logger.info("IntentAnalyzer Vertex AI initialized successfully")
-
-        except Exception as e:
-            logger.error(f"Error initializing IntentAnalyzer Vertex AI: {e}")
-            raise
+        self.chat_model = initialize_vertex_ai()
+        if not self.chat_model:
+            logger.error("Failed to initialize IntentAnalyzer Vertex AI")
+            raise RuntimeError("Vertex AI initialization failed")
 
     async def analyze_intent(self, message: str, session_id: str, recent_products: Optional[list] = None) -> Dict[str, Any]:
         """

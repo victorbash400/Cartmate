@@ -66,7 +66,7 @@ const PersonalizationModal: React.FC<PersonalizationModalProps> = ({ isOpen, onC
     setIsLoading(true);
     try {
       const data: PersonalizationData = {
-        image: image || undefined,
+        ...(image && { image }),
         stylePreferences,
         budgetRange
       };

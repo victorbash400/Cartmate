@@ -67,7 +67,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ message, formData, o
         return {
           ...prev,
           [field]: {
-            ...prev[field as keyof typeof prev],
+            ...(prev[field as keyof typeof prev] as any),
             [subField]: value
           }
         };

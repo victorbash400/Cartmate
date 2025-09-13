@@ -6,10 +6,8 @@ import asyncio
 import uuid
 import time
 from typing import Dict, Any, Optional
-from google.cloud import aiplatform
-from google.oauth2 import service_account
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel, ChatSession
+from services.vertex_ai_utils import initialize_vertex_ai
+from vertexai.preview.generative_models import ChatSession
 
 from agents.base import BaseAgent
 from models.a2a import A2AMessage, A2ARequest, A2AResponse, A2ARequestType, A2AMessageType, A2AFrontendNotification
@@ -51,28 +49,10 @@ class OrchestratorAgent(BaseAgent):
 
     def _initialize_vertex_ai(self):
         """Initialize Vertex AI connection"""
-        try:
-            # Configure the project and location
-            project_id = "imposing-kite-461508-v4"
-            location = "us-central1"
-            
-            # Path to your service account key file
-            key_path = "C:\\Users\\Victo\\Desktop\\CartMate\\cartmate-backend\\imposing-kite-461508-v4-71f861a0eecc.json"
-            
-            # Authenticate using the service account key
-            credentials = service_account.Credentials.from_service_account_file(key_path)
-            
-            # Initialize Vertex AI
-            vertexai.init(project=project_id, location=location, credentials=credentials)
-            
-            # Load the generative model
-            self.chat_model = GenerativeModel("gemini-2.5-flash")
-            
-            logger.info("OrchestratorAgent Vertex AI initialized successfully")
-
-        except Exception as e:
-            logger.error(f"Error initializing OrchestratorAgent Vertex AI: {e}")
-            raise
+        self.chat_model = initialize_vertex_ai()
+        if not self.chat_model:
+            logger.error("Failed to initialize OrchestratorAgent Vertex AI")
+            raise RuntimeError("Vertex AI initialization failed")
 
     async def start(self):
         """Start the orchestrator agent"""

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import ChatInput from './ChatInput';
 import Welcome from './Welcome';
-import AgentIndicator from './AgentIndicator';
+// import AgentIndicator from './AgentIndicator';
 import AgentStepSequence from './AgentStepSequence';
 import ConnectionStatus from './ConnectionStatus';
 import ProductGrid from './ProductGrid';
@@ -75,7 +75,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
   const ws = useRef<WebSocket | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
 
   // Auto-scroll to bottom function
   const scrollToBottom = () => {
@@ -147,7 +147,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
         return;
       }
       
-      ws.current = new WebSocket('ws://localhost:8000/ws/chat');
+      // Use LoadBalancer IP for production, localhost for development
+      const apiUrl = import.meta.env['VITE_API_URL'] || 
+        (window.location.hostname === '35.222.124.181' ? 'http://34.42.109.18:8000' : 'http://localhost:8000');
+      const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws/chat';
+      ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
         console.log('WebSocket connected');
@@ -165,7 +169,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
             clearTimeout(reconnectTimeoutRef.current);
           }
           
-          reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = window.setTimeout(() => {
             console.log('Attempting to reconnect...');
             connectWebSocket();
           }, 3000);
@@ -276,10 +280,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                     ...updatedMessages[i],
                     agentSteps: agentSteps,
                     text: message || updatedMessages[i].text,
-                    isPriceComparisonMessage: priceComparison ? true : updatedMessages[i].isPriceComparisonMessage,
-                    isProductMessage: products ? true : updatedMessages[i].isProductMessage,
+                    isPriceComparisonMessage: priceComparison ? true : (updatedMessages[i].isPriceComparisonMessage || false),
+                    isProductMessage: products ? true : (updatedMessages[i].isProductMessage || false),
                     priceComparison: priceComparison || updatedMessages[i].priceComparison,
-                    products: products || updatedMessages[i].products
+                    products: products || updatedMessages[i].products || []
                   };
                   break;
                 }
@@ -314,7 +318,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
         
         // Request contextual ads when products are shown
         if (products && products.length > 0) {
-          const categories = products.map(p => p.categories || []).flat();
+          const categories = products.map(p => (p as any).categories || []).flat();
           const uniqueCategories = [...new Set(categories)];
           if (uniqueCategories.length > 0) {
             setTimeout(() => requestAds(uniqueCategories), 500);
@@ -334,7 +338,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
           isProductMessage: products !== null,
           isPriceComparisonMessage: priceComparison !== null,
           isCheckoutFormMessage: checkoutFormData !== null,
-          products: products || undefined,
+          products: products || [],
           priceComparison: priceComparison || undefined,
           checkoutFormData: checkoutFormData || undefined
         };
@@ -350,7 +354,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                   ...updatedMessages[i],
                   ...agentResponse,
                   // Keep existing agent steps if any
-                  agentSteps: agentResponse.agentSteps || updatedMessages[i].agentSteps
+                  agentSteps: agentResponse.agentSteps || updatedMessages[i].agentSteps || []
                 };
                 return updatedMessages;
               }
@@ -423,12 +427,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
     // Keep chat interface active, don't go back to welcome screen
   };
 
-  const resetChat = () => {
-    setMessages([]);
-    setInput('');
-    setIsLoading(false);
-    setHasStartedChat(false);
-  };
+  // const resetChat = () => {
+  //   setMessages([]);
+  //   setInput('');
+  //   setIsLoading(false);
+  //   setHasStartedChat(false);
+  // };
 
   const handleNewChat = () => {
     // Immediately reset the UI to provide instant feedback but keep chat interface

@@ -38,3 +38,5 @@ __pycache__/
 *.pyo
 *.pyd
 .coverage
+*.json
+k8s/cartmate-secrets.yaml

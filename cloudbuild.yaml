@@ -1,0 +1,29 @@
+steps:
+  # Build CartMate Backend
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/imposing-kite-461508-v4/cartmate-backend:latest', './cartmate-backend']
+  
+  # Build CartMate Frontend  
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/imposing-kite-461508-v4/cartmate-frontend:latest', './cartmate-frontend']
+  
+  # Push Backend Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/imposing-kite-461508-v4/cartmate-backend:latest']
+  
+  # Push Frontend Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/imposing-kite-461508-v4/cartmate-frontend:latest']
+  
+  # Deploy to Kubernetes
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+    - run
+    - --filename=k8s/cartmate-backend-deployment.yaml
+    - --filename=k8s/cartmate-frontend-deployment.yaml
+    - --cluster=boutique-cluster
+    - --location=us-central1
+
+images:
+  - 'gcr.io/imposing-kite-461508-v4/cartmate-backend:latest'
+  - 'gcr.io/imposing-kite-461508-v4/cartmate-frontend:latest'

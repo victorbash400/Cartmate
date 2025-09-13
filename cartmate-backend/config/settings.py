@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # Vertex AI Settings
     VERTEX_AI_PROJECT_ID: Optional[str] = None
     VERTEX_AI_LOCATION: str = "us-central1"
+    VERTEX_AI_SERVICE_ACCOUNT_KEY_PATH: Optional[str] = None
     
     # Perplexity API
     PERPLEXITY_API_KEY: Optional[str] = None

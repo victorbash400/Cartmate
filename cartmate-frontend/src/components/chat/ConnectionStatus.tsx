@@ -8,12 +8,7 @@ interface ConnectionStatusProps {
   timestamp?: Date;
 }
 
-const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ 
-  sessionId, 
-  userId, 
-  message, 
-  timestamp = new Date() 
-}) => {
+const ConnectionStatus: React.FC<ConnectionStatusProps> = () => {
   return (
     <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
       <Check size={12} className="text-green-500" />

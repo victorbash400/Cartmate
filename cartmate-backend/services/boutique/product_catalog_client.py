@@ -1,11 +1,11 @@
-import os
 import grpc
 from protos.generated import demo_pb2
 from protos.generated import demo_pb2_grpc
+from config.settings import settings
 
 class ProductCatalogClient:
     def __init__(self):
-        self.host = os.environ.get("PRODUCT_CATALOG_SERVICE_ADDR", "localhost:3550")
+        self.host = f"{settings.PRODUCT_CATALOG_SERVICE_HOST}:{settings.PRODUCT_CATALOG_SERVICE_PORT}"
         self.channel = grpc.insecure_channel(self.host)
         self.stub = demo_pb2_grpc.ProductCatalogServiceStub(self.channel)
 

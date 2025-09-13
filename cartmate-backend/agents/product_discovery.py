@@ -7,9 +7,7 @@ from models.a2a import A2AMessage, A2ARequest, A2AResponse, A2AMessageType, A2AR
 from google.protobuf.json_format import MessageToDict
 
 # Vertex AI imports
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel
-from google.oauth2 import service_account
+from services.vertex_ai_utils import initialize_vertex_ai
 
 logger = logging.getLogger(__name__)
 
@@ -45,26 +43,9 @@ class ProductDiscoveryAgent(BaseAgent):
     
     def _initialize_vertex_ai(self):
         """Initialize Vertex AI for intelligent product analysis"""
-        try:
-            # Configure the project and location
-            project_id = "imposing-kite-461508-v4"
-            location = "us-central1"
-            
-            # Path to your service account key file
-            key_path = "C:\\Users\\Victo\\Desktop\\CartMate\\cartmate-backend\\imposing-kite-461508-v4-71f861a0eecc.json"
-            
-            # Authenticate using the service account key
-            credentials = service_account.Credentials.from_service_account_file(key_path)
-            
-            # Initialize Vertex AI
-            vertexai.init(project=project_id, location=location, credentials=credentials)
-            
-            # Load the generative model
-            self.ai_model = GenerativeModel("gemini-2.5-flash")
-            
-            logger.info("Vertex AI initialized successfully for ProductDiscoveryAgent")
-        except Exception as e:
-            logger.error(f"Error initializing Vertex AI for ProductDiscoveryAgent: {e}")
+        self.ai_model = initialize_vertex_ai()
+        if not self.ai_model:
+            logger.error("Failed to initialize Vertex AI for ProductDiscoveryAgent")
             self.ai_model = None
 
     async def start(self):

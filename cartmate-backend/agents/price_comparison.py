@@ -118,19 +118,12 @@ class PriceComparisonAgent(BaseAgent):
         """
         try:
             # Use Vertex AI to generate a smart search query
-            from vertexai.preview.generative_models import GenerativeModel
-            import vertexai
-            from google.oauth2 import service_account
+            from services.vertex_ai_utils import initialize_vertex_ai
             
-            # Initialize Vertex AI (reuse existing setup)
-            project_id = "imposing-kite-461508-v4"
-            location = "us-central1"
-            key_path = "C:\\Users\\Victo\\Desktop\\CartMate\\cartmate-backend\\imposing-kite-461508-v4-71f861a0eecc.json"
-            
-            credentials = service_account.Credentials.from_service_account_file(key_path)
-            vertexai.init(project=project_id, location=location, credentials=credentials)
-            
-            model = GenerativeModel("gemini-2.5-flash")
+            model = initialize_vertex_ai()
+            if not model:
+                logger.error("Failed to initialize Vertex AI for price comparison query generation")
+                return f"price comparison {product_info.get('name', 'product')} {current_price}"
             
             product_name = product_info.get('name', 'Unknown Product')
             product_description = product_info.get('description', '')

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, DollarSign, TrendingUp, ShoppingCart, CheckCircle, AlertCircle } from 'lucide-react';
+import { ExternalLink, DollarSign, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface PriceComparisonData {
   original_product: {
@@ -70,7 +70,7 @@ const PriceComparison: React.FC<PriceComparisonProps> = ({ priceComparison }) =>
   const price_analysis = priceComparison?.price_analysis || "";
   const similar_products = priceComparison?.similar_products || [];
   const sources = priceComparison?.sources || [];
-  const citations = priceComparison?.citations || [];
+  // const citations = priceComparison?.citations || [];
   
   // Safely get product name
   const productName = original_product?.name || "Unknown Product";
@@ -156,7 +156,7 @@ const PriceComparison: React.FC<PriceComparisonProps> = ({ priceComparison }) =>
         <div className="mb-3">
           <h4 className="text-xs font-medium text-gray-700 mb-2">Similar Products</h4>
           <div className="grid grid-cols-1 gap-2">
-            {similar_products.slice(0, 3).map((product, index) => (
+            {similar_products.slice(0, 3).map((product: any, index: number) => (
               <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-900 truncate">{product.name}</p>
@@ -186,7 +186,7 @@ const PriceComparison: React.FC<PriceComparisonProps> = ({ priceComparison }) =>
         <div className="mb-3">
           <h4 className="text-xs font-medium text-gray-700 mb-2">Sources</h4>
           <div className="flex flex-wrap gap-1.5">
-            {sources.slice(0, 6).map((source, index) => (
+            {sources.slice(0, 6).map((source: any, index: number) => (
               <a
                 key={index}
                 href={source.url}

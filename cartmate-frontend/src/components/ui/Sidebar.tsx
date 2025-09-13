@@ -72,7 +72,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
         formData.append('image', data.image);
       }
 
-      const response = await fetch('http://localhost:8000/api/personalization/save', {
+      const apiUrl = window.location.hostname === '35.222.124.181' ? 'http://34.42.109.18:8000' : 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/personalization/save`, {
         method: 'POST',
         body: formData,
       });
@@ -230,7 +231,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, connectionInfo
       <CartModal
         isOpen={isCartModalOpen}
         onClose={() => setIsCartModalOpen(false)}
-        sessionId={connectionInfo?.sessionId}
+        sessionId={connectionInfo?.sessionId || ''}
       />
     </>
   );

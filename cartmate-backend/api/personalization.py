@@ -7,9 +7,7 @@ import json
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel
-from google.oauth2 import service_account
+from services.vertex_ai_utils import initialize_vertex_ai
 from services.storage.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
@@ -36,18 +34,9 @@ class StyleAnalyzer:
     
     def _initialize_vertex_ai(self):
         """Initialize Vertex AI for image analysis"""
-        try:
-            project_id = "imposing-kite-461508-v4"
-            location = "us-central1"
-            key_path = "C:\\Users\\Victo\\Desktop\\CartMate\\cartmate-backend\\imposing-kite-461508-v4-71f861a0eecc.json"
-            
-            credentials = service_account.Credentials.from_service_account_file(key_path)
-            vertexai.init(project=project_id, location=location, credentials=credentials)
-            
-            self.model = GenerativeModel("gemini-2.5-flash")
-            logger.info("Vertex AI initialized successfully for StyleAnalyzer")
-        except Exception as e:
-            logger.error(f"Error initializing Vertex AI for StyleAnalyzer: {e}")
+        self.model = initialize_vertex_ai()
+        if not self.model:
+            logger.error("Failed to initialize Vertex AI for StyleAnalyzer")
             self.model = None
     
     async def analyze_style_image(self, image_data: bytes) -> Dict[str, Any]:

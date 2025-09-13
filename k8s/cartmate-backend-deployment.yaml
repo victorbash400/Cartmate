@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartmate-backend
+  labels:
+    app: cartmate-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cartmate-backend
+  template:
+    metadata:
+      labels:
+        app: cartmate-backend
+    spec:
+      containers:
+      - name: cartmate-backend
+        image: gcr.io/imposing-kite-461508-v4/cartmate-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        # Redis Configuration
+        - name: REDIS_HOST
+          value: "redis-cart"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_DB
+          value: "0"
+        
+        # gRPC Services (using existing Online Boutique services)
+        - name: PRODUCT_CATALOG_SERVICE_HOST
+          value: "productcatalogservice"
+        - name: PRODUCT_CATALOG_SERVICE_PORT
+          value: "3550"
+        - name: CART_SERVICE_HOST
+          value: "cartservice"
+        - name: CART_SERVICE_PORT
+          value: "7070"
+        - name: CHECKOUT_SERVICE_HOST
+          value: "checkoutservice"
+        - name: CHECKOUT_SERVICE_PORT
+          value: "5050"
+        - name: PAYMENT_SERVICE_HOST
+          value: "paymentservice"
+        - name: PAYMENT_SERVICE_PORT
+          value: "50051"
+        - name: AD_SERVICE_HOST
+          value: "adservice"
+        - name: AD_SERVICE_PORT
+          value: "9555"
+        
+        # Vertex AI Configuration
+        - name: VERTEX_AI_PROJECT_ID
+          value: "imposing-kite-461508-v4"
+        - name: VERTEX_AI_LOCATION
+          value: "us-central1"
+        
+        # Perplexity API (set these in your deployment)
+        - name: PERPLEXITY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cartmate-secrets
+              key: perplexity-api-key
+        - name: SONAR_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cartmate-secrets
+              key: sonar-api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartmate-backend
+  labels:
+    app: cartmate-backend
+spec:
+  selector:
+    app: cartmate-backend
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: LoadBalancer
