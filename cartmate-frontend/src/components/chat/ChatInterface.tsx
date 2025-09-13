@@ -221,9 +221,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
         
         // Handle ads messages
         if (messageData.type === 'ads') {
-          const adsData = messageData.content;
-          if (adsData && onAdsUpdate) {
-            onAdsUpdate(adsData.ads || [], adsData.context || []);
+          try {
+            const adsData = messageData.content;
+            if (adsData && onAdsUpdate) {
+              onAdsUpdate(adsData.ads || [], adsData.context || []);
+            }
+          } catch (error) {
+            console.warn('Error handling ads message:', error);
+            // Don't let ad errors break the chat
           }
           return;
         }
@@ -516,7 +521,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
         onAdsLoading(true);
       }
     } catch (error) {
-      console.error('Error requesting ads:', error);
+      console.warn('Error requesting ads:', error);
+      // Don't let ad request errors break the chat
+      if (onAdsLoading) {
+        onAdsLoading(false);
+      }
     }
   };
 
@@ -640,12 +649,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onChatStartedChange, onCo
                 {isLoading && (
                   <div className="mb-4">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                      <span className="text-xs text-gray-500 font-medium">CartMate is thinking...</span>
+                      <div className="w-2 h-2 bg-black rounded-full" style={{ animation: 'thinkingPulse 1.5s ease-in-out infinite' }}></div>
                     </div>
                   </div>
                 )}

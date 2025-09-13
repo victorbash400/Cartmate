@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Shield } from 'lucide-react';
+import { adBlockDetector } from '../../utils';
 
 interface Ad {
   redirect_url: string;
@@ -14,9 +15,23 @@ interface InlineAdsProps {
 
 export const InlineAds: React.FC<InlineAdsProps> = ({ ads, context, isLoading }) => {
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [isAdBlocked, setIsAdBlocked] = useState(false);
 
   // Limit ads to maximum of 4
   const limitedAds = ads.slice(0, 4);
+
+  // Detect ad blocker on component mount
+  useEffect(() => {
+    const handleAdBlockDetection = (blocked: boolean) => {
+      setIsAdBlocked(blocked);
+    };
+
+    adBlockDetector.onDetection(handleAdBlockDetection);
+
+    return () => {
+      adBlockDetector.removeCallback(handleAdBlockDetection);
+    };
+  }, []);
 
   // Rotate through ads every 5 seconds
   useEffect(() => {
@@ -35,6 +50,29 @@ export const InlineAds: React.FC<InlineAdsProps> = ({ ads, context, isLoading })
     // For now, just log it
     alert(`Ad clicked: ${ad.text}\nWould redirect to: ${ad.redirect_url}`);
   };
+
+  // Show ad blocker message if detected
+  if (isAdBlocked) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
+            <Shield className="w-3 h-3 text-gray-400" />
+          </div>
+          <h3 className="text-sm font-medium text-gray-600">Ad Blocker Detected</h3>
+        </div>
+        
+        <div className="text-center py-4">
+          <p className="text-xs text-gray-500 mb-2">
+            Content blocked by ad blocker
+          </p>
+          <p className="text-xs text-gray-400">
+            Consider whitelisting this site
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -130,7 +168,7 @@ export const InlineAds: React.FC<InlineAdsProps> = ({ ads, context, isLoading })
       
       <div className="mt-3 pt-3 border-t border-gray-100">
         <p className="text-xs text-gray-500 text-center">
-          Ads help keep CartMate free
+          Sponsored content
         </p>
       </div>
     </div>

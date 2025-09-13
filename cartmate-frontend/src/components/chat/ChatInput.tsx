@@ -46,13 +46,13 @@ export default function ChatInput({
   }, [value])
 
   return (
-    <div className="flex items-end space-x-1 px-3 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 hover:shadow-md focus-within:border-gray-900 focus-within:shadow-lg transition-all duration-300 ease-out">
+    <div className="flex items-end space-x-2 px-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm hover:border-gray-300 hover:shadow-md focus-within:border-gray-400 focus-within:shadow-lg transition-all duration-300 ease-out">
       <button
         type="button"
-        className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center"
+        className="flex-shrink-0 w-8 h-8 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200 flex items-center justify-center hover:scale-105 active:scale-95"
         disabled={disabled}
       >
-        <Plus className="w-4 h-4 text-gray-600" />
+        <Plus className="w-4 h-4 text-gray-500" />
       </button>
       
       <textarea
@@ -63,7 +63,7 @@ export default function ChatInput({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 focus:border-none text-sm font-normal resize-none leading-5 py-2"
+        className="flex-1 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 focus:border-none text-sm font-normal resize-none leading-6 py-1"
         style={{
           outline: 'none',
           boxShadow: 'none',
@@ -76,12 +76,12 @@ export default function ChatInput({
       <button
         onClick={onSubmit}
         disabled={disabled || !value.trim()}
-        className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 mb-0.5"
+        className="flex-shrink-0 w-8 h-8 rounded-xl bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 mb-0.5"
       >
         {isLoading ? (
-          <div className="w-4 h-4 border-2 border-gray-400/30 border-t-gray-600 rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         ) : (
-          <ArrowRight className="w-4 h-4 text-black" />
+          <ArrowRight className="w-4 h-4 text-white" />
         )}
       </button>
     </div>

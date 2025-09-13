@@ -1,8 +1,52 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MessageCircle } from 'lucide-react';
 import Sidebar from './components/ui/Sidebar'
 import ChatInterface from './components/chat/ChatInterface'
-import { InlineAds } from './components/ads'
+// Safe ads component that won't break the app
+const SafeInlineAds: React.FC<{ads: any[], context: string[], isLoading: boolean}> = ({ ads, context, isLoading }) => {
+  const [AdComponent, setAdComponent] = useState<React.ComponentType<any> | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    // Try to load the ads component
+    import('./components/promotions')
+      .then(module => {
+        setAdComponent(() => module.InlineAds);
+      })
+      .catch(() => {
+        setLoadError(true);
+      });
+  }, []);
+
+  // If there's an error loading or ad blocker detected, show fallback
+  if (loadError) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
+            <span className="text-gray-400 text-xs">•</span>
+          </div>
+          <h3 className="text-sm font-medium text-gray-600">Content</h3>
+        </div>
+        <div className="text-center text-gray-500 text-sm py-4">
+          Content loading...
+        </div>
+      </div>
+    );
+  }
+
+  // If component loaded successfully, render it
+  if (AdComponent) {
+    return <AdComponent ads={ads} context={context} isLoading={isLoading} />;
+  }
+
+  // Loading state
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      <div className="text-center text-gray-500 text-sm py-4">Loading...</div>
+    </div>
+  );
+};
 
 interface Ad {
   redirect_url: string;
@@ -79,7 +123,7 @@ function App() {
           <>
             {/* Compact Ads Component - Middle Right */}
             <div className="w-64 p-4 flex flex-col justify-center">
-              <InlineAds 
+              <SafeInlineAds 
                 ads={ads}
                 context={adsContext}
                 isLoading={adsLoading}

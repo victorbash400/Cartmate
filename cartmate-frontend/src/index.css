@@ -119,6 +119,17 @@
   }
 }
 
+@keyframes thinkingPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+}
+
 /* Smooth transitions for interactive elements (excluding form elements) */
 button, a, .transition-element {
   transition: all 0.2s ease-in-out;

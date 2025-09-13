@@ -4,7 +4,7 @@ Personalization Service - Handles user personalization data and context
 import logging
 import json
 from typing import Dict, Any, Optional
-from services.storage.redis_client import redis_client
+from services.storage.redis_client import redis_client 
 
 logger = logging.getLogger(__name__)
 
